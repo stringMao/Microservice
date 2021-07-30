@@ -1,0 +1,2 @@
+time="2021-07-23T15:28:11+08:00" level=fatal msg="read app.ini of log-level is err:strconv.Atoi: parsing \"debug\": invalid syntax"
+time="2021-07-23T16:18:18+08:00" level=fatal msg="app.ini of log-lvevl is err: not a valid logrus Level: \"\""

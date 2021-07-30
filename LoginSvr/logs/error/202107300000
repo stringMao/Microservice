@@ -1,0 +1,1 @@
+time="2021-07-30T11:14:39+08:00" level=error msg="AccountLogin read data err: json: cannot unmarshal string into Go struct field askAccountLogin.channel of type int"

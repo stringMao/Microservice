@@ -1,0 +1,22 @@
+syntax="proto3"; //版本号
+package base;  //包名
+option go_package = "base/";
+
+
+
+
+
+//LoginData 客户端登入协议
+message ClientLogin{
+    uint64 userid=1;
+    string token=2;
+}
+//ServerLogin 服务器连接登入协议
+message ServerLogin{
+    uint64  serverid=1;  //0+0+sid+tid 4个2字节拼接
+    string password=2;
+}
+
+message TestMsg{
+    string txt=1;
+}

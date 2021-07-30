@@ -1,0 +1,1 @@
+time="2021-07-19T17:45:53+08:00" level=fatal msg="register server error : Put \"http://127.0.0.1:8500/v1/agent/service/register\": dial tcp 127.0.0.1:8500: connectex: No connection could be made because the target machine actively refused it."

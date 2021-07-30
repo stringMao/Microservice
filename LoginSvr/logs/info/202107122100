@@ -1,0 +1,2 @@
+time="2021-07-12T21:01:39+08:00" level=info msg="mysql init success"
+time="2021-07-12T21:01:39+08:00" level=info msg="redis init success"
