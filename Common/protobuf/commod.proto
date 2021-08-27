@@ -1,0 +1,9 @@
+syntax="proto3"; //版本号
+package base;  //包名
+option go_package = "base/";
+
+
+//
+message Txt{
+    string txt=1;
+}

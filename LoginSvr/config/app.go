@@ -20,6 +20,14 @@ type ServerConfig struct {
 	DBMaxOpen  int                `tag:"mysql" key:"maxopenconns"`
 	DBMaxIdle  int                `tag:"mysql" key:"maxidleconns"`
 
+	DBHost_Player     string `tag:"mysql-player" key:"host"`
+	DBPort_Player     int    `tag:"mysql-player" key:"port"`
+	DBUserName_Player string `tag:"mysql-player" key:"username"`
+	DBPwd_Player      string `tag:"mysql-player" key:"password"`
+	DBName_Player     string `tag:"mysql-player" key:"dbname"`
+	DBMaxOpen_Player  int    `tag:"mysql-player" key:"maxopenconns"`
+	DBMaxIdle_Player  int    `tag:"mysql-player" key:"maxidleconns"`
+
 	RedisHost     string `tag:"redis" key:"host"`
 	RedisPort     int    `tag:"redis" key:"port"`
 	RedisUserName string `tag:"redis" key:"username"`

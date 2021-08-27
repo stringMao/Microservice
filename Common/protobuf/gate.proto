@@ -1,0 +1,12 @@
+syntax="proto3"; //版本号
+package gatesvrproto;  //包名
+option go_package = "gatesvrproto/";
+
+message PlayerInfo{
+    string NickName=1;
+    string Avatar=2;
+    int32    Gender=3;
+    int32   Age=4;
+    int64   Score=5;
+    int64   Gold=6;
+}

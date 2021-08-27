@@ -28,6 +28,27 @@ func Get_LoginSvr() *xorm.Engine {
 	return db_LoginSvr.GetMysql()
 }
 
+//player数据库连接对象
+var db_palyer = &db.MysqlData{}
+
+func ConnectDB_Player() {
+	db_palyer.Host = config.App.DBHost_Player
+	db_palyer.Port = config.App.DBPort_Player
+	db_palyer.UserName = config.App.DBUserName_Player
+	db_palyer.PassWord = config.App.DBPwd_Player
+	db_palyer.DBName = config.App.DBName_Player
+	db_palyer.MaxIdleConns = config.App.DBMaxIdle_Player
+	db_palyer.MaxOpenConns = config.App.DBMaxOpen_Player
+	if !db_palyer.Open() {
+		log.Logger.Fatalln("mysql db_palyer init fail")
+	}
+	log.Logger.Info("mysql init success")
+}
+func Get_Player() *xorm.Engine {
+	return db_palyer.GetMysql()
+}
+
+//redis连接对象
 var redisData = &db.RedisData{}
 
 func ConnectRedis() {

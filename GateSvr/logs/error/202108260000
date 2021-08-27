@@ -1,0 +1,2 @@
+time="2021-08-26T14:44:45+08:00" level=error msg="catch Exception:runtime error: integer divide by zero"
+time="2021-08-26T14:45:18+08:00" level=error msg="catch Exception:runtime error: integer divide by zero"

@@ -2,22 +2,24 @@ package msg
 
 import (
 	"encoding/binary"
-	"errors"
+	"math"
 )
 
-//消息协议头
+//协议头
 type HeadProto struct {
 	MainID uint32
 	SonID  uint32
 	Len    uint32
 }
 
+//协议头长度
 var size_head int = binary.Size(HeadProto{})
 
 func (h *HeadProto) GetHeadLen() int {
 	return size_head
 }
 
+//协议头（小端） 编码成二进制切片
 func (h *HeadProto) Encode() []byte {
 	b := make([]byte, size_head)
 	b[0] = byte(h.MainID)
@@ -38,107 +40,124 @@ func (h *HeadProto) Encode() []byte {
 	return b
 }
 
-//解码
+//二进制切片解码 成协议头
 func (h *HeadProto) Decode(b []byte) {
 	h.MainID = binary.LittleEndian.Uint32(b[:4])
 	h.SonID = binary.LittleEndian.Uint32(b[4:8])
 	h.Len = binary.LittleEndian.Uint32(b[8:12])
 }
 
-//HeadBase 消息的基础“指向信息头”===================================================================
-type HeadBase struct {
+//HeadSign 消息的“标记头” 消息来自哪里或者消息去向哪里===================================================================
+
+const Sign_serverid uint8 = 1 //表示 serverid
+const Sign_userid uint8 = 2   //表示 userid
+
+type HeadSign struct {
 	SignType uint8  //sign_serverid sign_userid
-	ID       uint64 //SignType==sign_serverid?serverid:userid
+	SignId   uint64 //SignType==sign_serverid?serverid:userid
+	Tid      uint32
+	Sid      uint32
 }
 
-const Sign_serverid uint8 = 0
-const Sign_userid uint8 = 1
+//标记头长度
+var size_sign int = binary.Size(HeadSign{})
 
-var size_base int = binary.Size(HeadBase{})
-
-//编码
-func (h *HeadBase) Encode() []byte {
-	b := make([]byte, size_base)
+//“标记头” 编码
+func (h *HeadSign) Encode() []byte {
+	b := make([]byte, size_sign)
 	b[0] = byte(h.SignType)
-	b[1] = byte(h.ID)
-	b[2] = byte(h.ID >> 8)
-	b[3] = byte(h.ID >> 16)
-	b[4] = byte(h.ID >> 24)
-	b[5] = byte(h.ID >> 32)
-	b[6] = byte(h.ID >> 40)
-	b[7] = byte(h.ID >> 48)
-	b[8] = byte(h.ID >> 56)
+	b[1] = byte(h.SignId)
+	b[2] = byte(h.SignId >> 8)
+	b[3] = byte(h.SignId >> 16)
+	b[4] = byte(h.SignId >> 24)
+	b[5] = byte(h.SignId >> 32)
+	b[6] = byte(h.SignId >> 40)
+	b[7] = byte(h.SignId >> 48)
+	b[8] = byte(h.SignId >> 56)
 	return b
 }
 
-//解码
-func (h *HeadBase) Decode(b []byte) {
-	//_ = b[size_base-1] // bounds check hint to compiler;
+//解码成“标记头”
+func (h *HeadSign) Decode(b []byte) {
+	//_ = b[size_sign-1] // bounds check hint to compiler;
 	h.SignType = b[0]
-	h.ID = binary.LittleEndian.Uint64(b[1:size_base])
+	h.SignId = binary.LittleEndian.Uint64(b[1:size_sign])
+	if h.SignType == Sign_serverid {
+		h.Sid, h.Tid = DecodeServerID(h.SignId)
+	}
 }
 
-//
-func (h *HeadBase) ReplaceHeadBase(b []byte) {
-	_ = b[8] // early bounds check to guarantee safety of writes below
-	b[0] = byte(h.SignType)
-	b[1] = byte(h.ID)
-	b[2] = byte(h.ID >> 8)
-	b[3] = byte(h.ID >> 16)
-	b[4] = byte(h.ID >> 24)
-	b[5] = byte(h.ID >> 32)
-	b[6] = byte(h.ID >> 40)
-	b[7] = byte(h.ID >> 48)
-	b[8] = byte(h.ID >> 56)
-}
+//将二进制流头部的“标记头”重置
+// func (h *HeadSign) ReplaceHeadBase(b []byte) {
+// 	_ = b[8] // early bounds check to guarantee safety of writes below
+// 	b[0] = byte(h.SignType)
+// 	b[1] = byte(h.ID)
+// 	b[2] = byte(h.ID >> 8)
+// 	b[3] = byte(h.ID >> 16)
+// 	b[4] = byte(h.ID >> 24)
+// 	b[5] = byte(h.ID >> 32)
+// 	b[6] = byte(h.ID >> 40)
+// 	b[7] = byte(h.ID >> 48)
+// 	b[8] = byte(h.ID >> 56)
+// }
 
 //================================================================================
-func CreateMsgHead(base *HeadBase, head *HeadProto) []byte {
-	b := make([]byte, size_base+size_head)
-	copy(b, base.Encode())
-	copy(b[size_base:], head.Encode())
-	return b
-}
 
-func DecodeMsgHead(b []byte, n int) (*HeadBase, *HeadProto, error) {
-	if n < (size_base + size_head) {
-		return nil, nil, errors.New("长度小于head")
-	}
-	base := &HeadBase{}
-	base.Decode(b[:size_base])
-	//base.SignType = b[0]
-	//base.ID = binary.LittleEndian.Uint64(b[1:9])
-
-	head := &HeadProto{}
-	head.Decode(b[size_base:(size_base + size_head)])
-	//head.MainID = binary.LittleEndian.Uint32(b[9:13])
-	//head.SonID = binary.LittleEndian.Uint32(b[13:17])
-	//head.Len = binary.LittleEndian.Uint32(b[17:21])
-
-	return base, head, nil
-}
-
-func CreateMsgData(base *HeadBase, head *HeadProto, data []byte) []byte {
-	b := make([]byte, size_base+size_head+int(head.Len))
-	copy(b, base.Encode())
-	copy(b[size_base:], head.Encode())
-	if head.Len > 0 {
-		copy(b[size_base+size_head:], data)
-	}
-	return b
-}
-
-func CreateMsg2(base *HeadBase, data []byte) []byte {
-	b := make([]byte, size_base+len(data))
-	copy(b, base.Encode())
-	copy(b[size_base:], data)
-	return b
-}
-
+//获得“标记头”+“协议头”的总长度
 func GetHeadLength() int {
-	return size_base + size_head
+	return size_sign + size_head
 }
 
-func GetHeadbaseLength() int {
-	return size_base
+//获得“标记头”的长度
+func GetSignHeadLength() int {
+	return size_sign
+}
+
+//解码serverid to tid sid
+func DecodeServerID(serverid uint64) (tid, sid uint32) {
+	sid = uint32(serverid & (math.MaxUint32 << 32))
+	tid = uint32(serverid & math.MaxUint32)
+	return tid, sid
+}
+
+//将tid 和sid组合成serverid
+func EncodeServerID(tid, sid uint32) uint64 {
+	return uint64(sid)<<32 + uint64(tid)
+}
+
+//创建“标记头”的二进制流
+func CreateSignHead(signtype uint8, id uint64) []byte {
+	return (&HeadSign{
+		SignType: signtype,
+		SignId:   id,
+	}).Encode()
+}
+
+//创建“协议头”的二进制流
+func CreateProtoHead(mainid, sonid, lenght uint32) []byte {
+	return (&HeadProto{
+		MainID: mainid,
+		SonID:  sonid,
+		Len:    lenght,
+	}).Encode()
+}
+
+//创建“标记头”+“协议头”的二进制流
+func CreateSignAndProtoHead(signtype uint8, id uint64, mainid, sonid, lenght uint32) []byte {
+	return append(CreateSignHead(signtype, id), CreateProtoHead(mainid, sonid, lenght)...)
+}
+
+//创建完整的消息流 “标记头”+“协议头”+“协议体”
+func CreateWholeMsgData(signtype uint8, id uint64, mainid, sonid uint32, data []byte) []byte {
+	return append(CreateSignAndProtoHead(signtype, id, mainid, sonid, uint32(len(data))), data...)
+}
+
+//创建完整的协议流 “协议头”+“协议体”
+func CreateWholeProtoData(mainid, sonid uint32, data []byte) []byte {
+	return append(CreateProtoHead(mainid, sonid, uint32(len(data))), data...)
+}
+
+//为协议流添加“标记头”
+func AddSignHead(signtype uint8, id uint64, data []byte) []byte {
+	return append(CreateSignHead(signtype, id), data...)
 }

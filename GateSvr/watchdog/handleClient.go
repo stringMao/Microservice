@@ -5,11 +5,10 @@ import (
 	"Common/log"
 	"Common/msg"
 	"Common/proto/base"
+	"Common/proto/gatesvrproto"
+	"Common/try"
 	"GateSvr/logic"
-	"fmt"
-	"math"
 	"net"
-	"runtime/debug"
 	"time"
 
 	"github.com/golang/protobuf/proto"
@@ -17,43 +16,67 @@ import (
 
 //handleClientConnection 客户端连接请求处理
 func handleClientConnection(conn net.Conn) {
-	defer func() {
-		conn.Close()
-		if r := recover(); r != nil {
-			log.Logger.Error("Recovered in", r, ":", string(debug.Stack()))
-		}
-	}()
+	defer try.Catch()
+	defer conn.Close()
+
+	//fmt.Println(conn.RemoteAddr())
+
 	//连接之后的第一条消息，必须是登入获取userid
 	buffer := make([]byte, 2048) //建立一个slice
 	conn.SetReadDeadline(time.Now().Add(time.Second * 1))
 	n, err := conn.Read(buffer)
 	if err != nil {
-		log.Logger.Error(conn.RemoteAddr().String(), "read first msg error: ", err)
+		log.Error(conn.RemoteAddr().String(), "read first msg error: ", err)
 		return //当远程客户端连接发生错误（断开）后，终止此协程。
 	}
 	logindata := &base.ClientLogin{}
 	err = proto.Unmarshal(buffer[:n], logindata)
 	if err != nil {
-		log.Logger.Error(conn.RemoteAddr().String(), "encode first msg error: ", err)
+		log.Errorln(conn.RemoteAddr().String(), "encode first msg error: ", err)
 		return //当远程客户端连接发生错误（断开）后，终止此协程。
 	}
-	fmt.Println(logindata)
+	//fmt.Println(logindata)
 
 	//登入验证
 	if logic.UserLogin(logindata.Userid, logindata.Token) != 0 {
 		//登入验证失败
+		conn.Write(msg.CreateErrorMsg(msg.Err_Login_AuthenticationFail))
 		return
 	}
-	//身份验证成功,加入管理队列
-	agent := agentmanager.AddAgentClient(logindata.Userid, conn)
-	defer agentmanager.RemoveAgentClient(logindata.Userid)
+	//顶号处理
+	if !agentmanager.ReplaceClient(logindata.Userid) {
+		//顶号失败
+		conn.Write(msg.CreateErrorMsg(msg.Err_Login_AuthenticationFail))
+		return
+	}
 
+	//身份验证成功,加入管理队列
+	defer agentmanager.RemoveAgentClient(logindata.Userid)
+	agent := agentmanager.AddAgentClient(logindata.Userid, conn)
+
+	//加载个人数据
+	if !agent.Init() {
+		agent.SendData(msg.CreateErrorMsg(msg.Err_Login_InitDataFail))
+		return
+	} else {
+		//发送连接成功消息
+		tPro := &gatesvrproto.PlayerInfo{
+			NickName: agent.Player.BaseData.NickName,
+			Avatar:   agent.Player.BaseData.Avatar,
+			Gender:   int32(agent.Player.BaseData.Age),
+			Age:      int32(agent.Player.BaseData.Age),
+			Score:    agent.Player.CashData.Score,
+			Gold:     agent.Player.CashData.Gold,
+		}
+		dPro, _ := proto.Marshal(tPro)
+		agent.SendData(msg.CreateWholeProtoData(msg.MID_Gate, msg.Gate_SendPlayerData, dPro))
+	}
 	for {
 		//开始通讯
 		conn.SetReadDeadline(time.Now().Add(time.Second * 5)) //借此检测心跳包
 		n, err := conn.Read(buffer)                           //读取客户端传来的内容
 		if err != nil {
-			log.Logger.Error(conn.RemoteAddr().String(), "connection error: ", err)
+			log.Debug(conn.RemoteAddr().String(), " connection error: ", err)
 			return //当远程客户端连接发生错误（断开）后，终止此协程。
 		}
 		//特殊包-心跳包过滤  消息结构[uint8]=200
@@ -61,52 +84,50 @@ func handleClientConnection(conn net.Conn) {
 			//log.Logger.Debugln("heart")
 			continue
 		}
-
-		//log.Logger.Debug(conn.RemoteAddr().String(), "receive data string:\n", string(buffer[:n]))
-		if n < msg.GetHeadLength() { //消息大小安全检测
-			log.Logger.Error(conn.RemoteAddr().String(), "msg len too samll", logindata.Userid)
+		//消息大小安全检测
+		if n < msg.GetHeadLength() {
+			log.Error(conn.RemoteAddr().String(), "msg len too samll", logindata.Userid)
 			return
 		}
 		//  消息结构  [uint8]+[uint64]+[uint32,uint32,uint32]
 		//  [uint8](后面8表示说明，0:后面是serverid 1:后面是userid)
 		//  [uint64](userid(8字节)或者0(4字节)+sid(2字节)+tid(2字节))
 		//  [uint32,uint32,uint32](mainid+sonid+len)+msg
-		baseH := &msg.HeadBase{}
-		baseH.Decode(buffer)
+		signhead := &msg.HeadSign{}
+		signhead.Decode(buffer)
 
-		switch baseH.SignType {
+		switch signhead.SignType {
 		case msg.Sign_serverid: //后8位是serverid
 			//修改消息
-			tempbaseH := msg.HeadBase{SignType: msg.Sign_userid, ID: logindata.Userid}
-			buf := msg.CreateMsg2(&tempbaseH, buffer[msg.GetHeadbaseLength():n])
+			buf := msg.AddSignHead(msg.Sign_userid, logindata.Userid, buffer[msg.GetSignHeadLength():n])
 
 			//serverid := binary.LittleEndian.Uint64(buffer[1:9])
-			if baseH.ID < math.MaxUint16 { //小于 math.MaxUint16 说明serverid=tid
-				//根据tid，转发消息
-				if agent.PushData(uint16(baseH.ID), buf) == false { //没用发送成功，说明没用分配给这个客户端对应的服务器
-					//分配一个tid对应的服务
-					serverid, pSvr := agentmanager.AllocSvr(uint16(baseH.ID))
-					if serverid == 0 || pSvr == nil { //分配失败
+			if signhead.Tid == 0 { //发给本服务器
+				agent.SendData(msg.CreateErrorMsg(99))
+				break
+			} else if signhead.Tid != 0 && signhead.Sid == 0 {
+				serverid := agent.GetServerId(signhead.Tid)
+				if serverid == 0 {
+					serverid = agentmanager.AllocSvr(signhead.Tid)
+					if serverid == 0 {
+						//服务器找不到
 						agent.SendData(msg.CreateErrorMsg(msg.Err_ServerNoFind))
 						break
 					}
-					//转发送消息给新分配的服务
-					if !agentmanager.TransferToServer(serverid, buf, len(buf)) {
-						agent.SendData(msg.CreateErrorMsg(msg.Err_MsgSendFail_ServerNoExist))
-						break
-					}
-					//完成分配
-					agent.SetSvr(uint16(baseH.ID), pSvr)
+					agent.SetServerId(signhead.Tid, serverid)
 				}
-				break
-			}
-			//是指定服务的特殊发送
-			if !agentmanager.TransferToServer(baseH.ID, buffer, n) {
-				agent.SendData(msg.CreateErrorMsg(msg.Err_MsgSendFail_ServerNoExist))
+				if !agentmanager.TransferToServer(serverid, buf) {
+					//发送失败
+					//切换服务，会有一个号登入多个服的可能，建议断线重登
+					agent.SendData(msg.CreateErrorMsg(msg.Err_MsgSendFail_ServerNoExist))
+					return
+				}
+			} else if signhead.Tid != 0 && signhead.Sid != 0 {
+				//允不允许客户端指向发送指定的服务，可能存在风险
 			}
 		case msg.Sign_userid: //后8位是userid
 			//userid := binary.BigEndian.Uint64(buffer[1:9])
-			log.Logger.Error(conn.RemoteAddr().String(), "客户端不能发消息给其他客户端", logindata.Userid, baseH.ID)
+			log.Error(conn.RemoteAddr().String(), "客户端不能发消息给其他客户端", logindata.Userid, signhead.SignId)
 			return
 		default: //发现非法协议
 			log.Logger.Error(conn.RemoteAddr().String(), "发现客户端的非法协议", logindata.Userid)

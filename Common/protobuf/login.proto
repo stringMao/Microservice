@@ -13,8 +13,10 @@ message ClientLogin{
 }
 //ServerLogin 服务器连接登入协议
 message ServerLogin{
-    uint64  serverid=1;  //0+0+sid+tid 4个2字节拼接
-    string password=2;
+    //uint64  serverid=1;  //0+0+sid+tid 4个2字节拼接
+    uint32  tid=1;
+    uint32  sid=2;
+    string password=3;
 }
 
 message TestMsg{

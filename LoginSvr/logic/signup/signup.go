@@ -81,6 +81,9 @@ func RegisterAccount(c *gin.Context) {
 		acc.Nickname = fmt.Sprintf("游客_%d", acc.Userid)
 		acc.UpdateNickname()
 	}
+
+	//初始化用户数据相关表
+
 	c.JSON(http.StatusOK, global.GetResultSucData(nil)) //通知注册成功
 }
 

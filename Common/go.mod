@@ -7,6 +7,7 @@ require (
 	github.com/gin-gonic/gin v1.7.2
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/go-xorm/xorm v0.7.9
+	github.com/gogo/protobuf v1.2.2-0.20190723190241-65acae22fc9d
 	github.com/gomodule/redigo v1.8.5
 	github.com/hashicorp/consul v1.10.0 // indirect
 	github.com/hashicorp/consul/api v1.9.1

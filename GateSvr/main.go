@@ -5,6 +5,7 @@ import (
 	"Common/util"
 	"Common/webmanager"
 	"GateSvr/config"
+	"GateSvr/dbmanager"
 	"GateSvr/watchdog"
 	"math/rand"
 	"os"
@@ -28,8 +29,8 @@ func main() {
 	// 		fmt.Println(err) //这里的err其实就是panic传入的内容
 	// 	}
 	// }()
-	
-
+	dbmanager.ConnectDB()
+	dbmanager.ConnectRedis()
 	//打开socket监听
 	watchdog.Start()
 

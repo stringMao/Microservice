@@ -27,6 +27,7 @@ func init() {
 func main() {
 	//mysql连接
 	dbmanager.ConnectDB_LoginSvr()
+	dbmanager.ConnectDB_Player()
 	//
 	dbmanager.ConnectRedis()
 	//6.

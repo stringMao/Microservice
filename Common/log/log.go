@@ -37,7 +37,7 @@ func newLfsHook(filepath string) logrus.Hook {
 		rotatelogs.WithLinkName(logpath),       // 生成软链，指向最新日志文件
 		rotatelogs.WithRotationTime(time.Hour), //设置日志分割的时间，这里设置为一小时分割一次
 		//WithMaxAge和WithRotationCount二者只能设置一个，
-		rotatelogs.WithMaxAge(time.Hour*12), // 文件最大保存时间
+		rotatelogs.WithMaxAge(time.Hour*24*5), // 文件最大保存时间
 	)
 	if err != nil {
 		logrus.Errorf("writerDebug logger error. %+v", errors.WithStack(err))
@@ -54,6 +54,17 @@ func newLfsHook(filepath string) logrus.Hook {
 	if err != nil {
 		logrus.Errorf("writerInfo logger error. %+v", errors.WithStack(err))
 	}
+	//===warn log===============================================
+	logpath = filepath + "warn/"
+	writerWarn, err := rotatelogs.New(
+		logpath+"%Y%m%d%H%M",
+		rotatelogs.WithLinkName(logpath),
+		rotatelogs.WithRotationTime(time.Hour),
+		rotatelogs.WithMaxAge(time.Hour*24*30),
+	)
+	if err != nil {
+		logrus.Errorf("writerWarn logger error. %+v", errors.WithStack(err))
+	}
 
 	//====Errlog===================================
 	logpath = filepath + "error/"
@@ -65,6 +76,29 @@ func newLfsHook(filepath string) logrus.Hook {
 	)
 	if err != nil {
 		logrus.Errorf("writerErr logger error. %+v", errors.WithStack(err))
+	}
+	//==Fatal log=========================================
+	logpath = filepath + "fatal/"
+	writerFatal, err := rotatelogs.New(
+		logpath+"%Y%m%d%H%M",
+		rotatelogs.WithLinkName(logpath),
+		rotatelogs.WithRotationTime(time.Hour*24),
+		rotatelogs.WithMaxAge(time.Hour*24*30),
+	)
+	if err != nil {
+		logrus.Errorf("writerFatal logger error. %+v", errors.WithStack(err))
+	}
+
+	//===Panic log===============================================
+	logpath = filepath + "panic/"
+	writerPanic, err := rotatelogs.New(
+		logpath+"%Y%m%d%H%M",
+		rotatelogs.WithLinkName(logpath),
+		rotatelogs.WithRotationTime(time.Hour*24),
+		rotatelogs.WithMaxAge(time.Hour*24*30),
+	)
+	if err != nil {
+		logrus.Errorf("writerPanic logger error. %+v", errors.WithStack(err))
 	}
 
 	/*
@@ -83,10 +117,10 @@ func newLfsHook(filepath string) logrus.Hook {
 	lfsHook := lfshook.NewHook(lfshook.WriterMap{
 		logrus.DebugLevel: writerDebug,
 		logrus.InfoLevel:  writerInfo,
-		logrus.WarnLevel:  writerErr,
+		logrus.WarnLevel:  writerWarn,
 		logrus.ErrorLevel: writerErr,
-		logrus.FatalLevel: writerErr,
-		logrus.PanicLevel: writerErr,
+		logrus.FatalLevel: writerFatal,
+		logrus.PanicLevel: writerPanic,
 	}, &logrus.TextFormatter{DisableColors: true})
 
 	return lfsHook
@@ -105,10 +139,71 @@ func WithField(key string, value interface{}) *logrus.Entry {
 	return Logger.WithField(key, value)
 }
 
-func Fatal(args ...interface{}) {
-	Logger.Fatal(args)
+func Debug(args ...interface{}) {
+	Logger.Debug(args...)
 }
 
-func Debug(args ...interface{}) {
-	Logger.Debug(args)
+func Debugln(args ...interface{}) {
+	Logger.Debugln(args...)
+}
+
+func Debugf(format string, args ...interface{}) {
+	Logger.Debugf(format, args...)
+}
+
+func Info(args ...interface{}) {
+	Logger.Info(args...)
+}
+func Infoln(args ...interface{}) {
+	Logger.Infoln(args...)
+}
+func Infof(format string, args ...interface{}) {
+	Logger.Infof(format, args...)
+}
+
+func Warn(args ...interface{}) {
+	Logger.Warn(args...)
+}
+func Warnln(args ...interface{}) {
+	Logger.Warnln(args...)
+}
+func Warnf(format string, args ...interface{}) {
+	Logger.Warnf(format, args...)
+}
+
+func Error(args ...interface{}) {
+	Logger.Error(args...)
+}
+func Errorln(args ...interface{}) {
+	Logger.Errorln(args...)
+}
+func Errorf(format string, args ...interface{}) {
+	Logger.Errorf(format, args...)
+}
+func Fatal(args ...interface{}) {
+	Logger.Fatal(args...)
+}
+func Fatalln(args ...interface{}) {
+	Logger.Fatalln(args...)
+}
+func Fatalf(format string, args ...interface{}) {
+	Logger.Fatalf(format, args...)
+}
+
+func Panic(args ...interface{}) {
+	Logger.Panic(args...)
+}
+func Panicln(args ...interface{}) {
+	Logger.Panicln(args...)
+}
+func Panicf(format string, args ...interface{}) {
+	Logger.Panicf(format, args...)
+}
+
+//打印异常 及堆栈信息
+func PrintPanicStack(err interface{}, stack string) {
+	Logger.Error("catch Exception:", err)
+	Logger.Error("Stack Info start ============")
+	Logger.Error(stack)
+	Logger.Error("Stack Info end ==============")
 }

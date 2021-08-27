@@ -1,7 +1,9 @@
 package gatesvr
 
 import (
+	"Common/msg"
 	"Common/proto/base"
+	"Common/proto/gatesvrproto"
 	"fmt"
 	"net"
 	"time"
@@ -61,7 +63,8 @@ func (c *ConnTcp) Connect(userid uint64, token string) bool {
 			return false //当远程客户端连接发生错误（断开）后，终止此协程。
 		}
 		//send <- buffer[:n]
-		//protoEncodePrint(buffer, n)
+		protoEncodePrint(buffer, n)
+
 	}
 	return true
 }
@@ -79,18 +82,39 @@ func (c *ConnTcp) OpenHeart() {
 	}()
 }
 
-// func protoEncodePrint(buf []byte, n int) {
-// 	head := &msg.HeadProto{}
-// 	head.Decode(buf)
-// 	msgstr := &base.TestMsg{}
-// 	if head.Len > 0 {
-// 		err := proto.Unmarshal(buf[head.GetHeadLen():n], msgstr)
-// 		if err != nil {
-// 			fmt.Println("协议解析失败2:", err)
-// 			return //当远程客户端连接发生错误（断开）后，终止此协程。
-// 		}
-// 	}
-// 	fmt.Printf("接收消息: mainid[%d] sonid[%d] len[%d] msg:%s \n", head.MainID, head.SonID, head.Len, msgstr.Txt)
-// 	return
+func (c *ConnTcp) TestSend(b []byte) {
+	c.send <- b
+}
 
-// }
+var ConnSucc = false
+
+func protoEncodePrint(buf []byte, n int) {
+	head := &msg.HeadProto{}
+	head.Decode(buf)
+
+	fmt.Printf("接收消息: mainid[%d] sonid[%d] len[%d] \n", head.MainID, head.SonID, head.Len)
+	if head.Len > 0 {
+
+		switch head.MainID {
+		case msg.MID_Err:
+		case msg.MID_Hall:
+		case msg.MID_Gate:
+			switch head.SonID {
+			case msg.Gate_SendPlayerData:
+				msgstr := &gatesvrproto.PlayerInfo{}
+				err := proto.Unmarshal(buf[head.GetHeadLen():n], msgstr)
+				if err != nil {
+					fmt.Println("协议解析失败2:", err)
+					return //当远程客户端连接发生错误（断开）后，终止此协程。
+				}
+				fmt.Printf("%+v\n", msgstr)
+				ConnSucc = true
+			}
+
+		}
+
+	}
+	//fmt.Printf("接收消息: mainid[%d] sonid[%d] len[%d] msg:%s \n", head.MainID, head.SonID, head.Len, msgstr.Txt)
+	return
+
+}

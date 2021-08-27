@@ -22,3 +22,9 @@ func UserLogin(userid uint64, token string) byte {
 
 	return 2
 }
+
+//服务器连接的身份验证
+func ServerLoginAuthentication(serverid uint64, password string) bool {
+
+	return true
+}

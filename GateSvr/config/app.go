@@ -25,6 +25,14 @@ type ServerConfig struct {
 	RedisNum      int    `tag:"redis" key:"database"`
 	RedisMaxOpen  int    `tag:"redis" key:"maxopenconns"`
 	RedisMaxIdle  int    `tag:"redis" key:"maxidleconns"`
+
+	DBHost     string `tag:"mysql" key:"host"`
+	DBPort     int    `tag:"mysql" key:"port"`
+	DBUserName string `tag:"mysql" key:"username"`
+	DBPwd      string `tag:"mysql" key:"password"`
+	DBName     string `tag:"mysql" key:"dbname"`
+	DBMaxOpen  int    `tag:"mysql" key:"maxopenconns"`
+	DBMaxIdle  int    `tag:"mysql" key:"maxidleconns"`
 }
 
 var App = &ServerConfig{}

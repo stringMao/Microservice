@@ -13,9 +13,10 @@ import (
 func InsertTokenToRedis(token string, acc models.Account) bool {
 	redisCon := dbmanager.GetRedis()
 	defer redisCon.Close()
-
+	//token key设置
 	redisCon.Do("SET", fmt.Sprintf("token:%d", acc.Userid), token, "EX", global.TokenActiveTime)
 
+	//玩家基础信息缓存
 	var key = fmt.Sprintf("accountdata:%d", acc.Userid)
 	redisCon.Do("HSET", key, "nickname", acc.Nickname)
 	redisCon.Do("HSET", key, "accounttype", acc.Accounttype)
