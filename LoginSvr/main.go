@@ -2,8 +2,10 @@ package main
 
 import (
 	"Common/constant"
+	"Common/log"
 	"Common/setting"
 	"Common/svrfind"
+	"Common/util"
 	"Common/webmanager"
 	"LoginSvr/config"
 	"LoginSvr/dbmanager"
@@ -25,6 +27,7 @@ func init() {
 }
 
 func main() {
+	//defer ServerEnd()
 	//mysql连接
 	dbmanager.ConnectDB_LoginSvr()
 	dbmanager.ConnectDB_Player()
@@ -46,11 +49,16 @@ func main() {
 	<-c
 }
 
+func ServerEnd() {
+	//通知consul注销服务
+	//svrfind.Deregister(config.App.Base.GetServerIDStr())
+}
+
 //注册后台路由，启动路由监听
 func registerWebManagerRoute() {
 	webagent := webmanager.CreateRouterAgent()
 
-	//健康检查接口
+	//供consul健康检查接口
 	consulCheckHealth := webmanager.RouterHelper{
 		Type:   webmanager.RouterType_consul,
 		Path:   "/check",
@@ -66,16 +74,17 @@ func registerWebManagerRoute() {
 
 //服务注册
 func registerToDiscovery() {
-	registration := svrfind.CreateRegistration()
-	registration.ID = config.App.Base.GetServerIDStr()
-	registration.Name = config.App.Base.GetServerName()
-	registration.Port = config.App.Port
-	//registration.TaggedAddresses["Client"]=
-	registration.Tags = []string{config.App.Base.GetServerTag()}
-	registration.Address = "127.0.0.1"
-	registration.Check = svrfind.CreateCheck(registration.Address, config.App.Base.WebManagerPort)
-	svrfind.Register(registration)
+	svritem := svrfind.NewServerItem(config.App.Base.ConsulAddr)
+	svritem.SvrData.ID = config.App.Base.GetServerIDStr()
+	svritem.SvrData.Name = config.App.Base.GetServerName() //本服务的名字
+	svritem.SvrData.Port = config.App.Port
+	svritem.SvrData.Tags = []string{config.App.Base.GetServerTag()}
+	svritem.SvrData.Address = util.GetLocalIP()
+	//svritem.SvrData.Check = svritem.CreateAgentServiceCheck(config.App.Base.WebManagerPort)
+	if svritem.Register(config.App.Base.WebManagerPort) {
+		log.Infoln("服务注册成功!")
+	}
 
 	//拉取该服务需要知道的其他服务状态
-	go svrbalanced.RefreshSvrList(setting.GetServerName(constant.TID_GateSvr), "")
+	go svrbalanced.RefreshSvrList(svritem, setting.GetServerName(constant.TID_GateSvr), "")
 }

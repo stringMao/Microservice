@@ -5,6 +5,7 @@ go 1.15
 require (
 	Common v0.0.0
 	github.com/Unknwon/goconfig v0.0.0-20200908083735-df7de6a44db8
+	github.com/garyburd/redigo v1.6.2
 	github.com/gin-gonic/gin v1.7.2
 	github.com/go-xorm/xorm v0.7.9
 	github.com/golang/protobuf v1.5.2

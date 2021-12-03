@@ -5,15 +5,17 @@ import (
 	"GateSvr/core/player"
 	"net"
 	"runtime/debug"
+	"sync"
 )
 
 //客户端对象
 type agentClient struct {
-	Userid  uint64
-	conn    net.Conn //客户端连接
-	send    chan []byte
-	sendEnd chan bool         //发送消息的协程开关
-	svrlist map[uint32]uint64 //该用户连接的服务器列表map[tid]serverid（每种服务器只能连一个 serverid=0+0+sid+tid）
+	Userid        uint64
+	conn          net.Conn //客户端连接
+	send          chan []byte
+	sendEnd       chan bool         //发送消息的协程开关
+	svrlist       map[uint32]uint64 //该用户连接的服务器列表map[tid]serverid（每种服务器只能连一个 serverid=0+0+sid+tid）
+	svrlistRWLock *sync.RWMutex     //对服务器列表的读写锁
 	//svrMap map[uint16]*agentServer //服务器列表
 
 	Player *player.Player //玩家数据
@@ -21,11 +23,12 @@ type agentClient struct {
 
 func NewAgentClient(userid uint64, c net.Conn) *agentClient {
 	a := &agentClient{
-		Userid:  userid,
-		conn:    c,
-		send:    make(chan []byte, 100),
-		sendEnd: make(chan bool),
-		svrlist: make(map[uint32]uint64, 5),
+		Userid:        userid,
+		conn:          c,
+		send:          make(chan []byte, 100),
+		sendEnd:       make(chan bool),
+		svrlist:       make(map[uint32]uint64, 5),
+		svrlistRWLock: new(sync.RWMutex),
 		//svrMap: make(map[uint16]*agentServer, 5),
 	}
 
@@ -79,6 +82,8 @@ func (a *agentClient) SendData(msg []byte) (suc bool) {
 }
 
 func (a *agentClient) GetServerId(tid uint32) uint64 {
+	a.svrlistRWLock.RLock()
+	defer a.svrlistRWLock.RUnlock()
 	if s, ok := a.svrlist[tid]; ok {
 		return s
 	}
@@ -101,5 +106,7 @@ func (a *agentClient) GetServerId(tid uint32) uint64 {
 // }
 
 func (a *agentClient) SetServerId(tid uint32, serverid uint64) {
+	a.svrlistRWLock.Lock()
+	defer a.svrlistRWLock.Unlock()
 	a.svrlist[tid] = serverid
 }

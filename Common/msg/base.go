@@ -2,6 +2,7 @@ package msg
 
 import (
 	"encoding/binary"
+	"errors"
 	"math"
 )
 
@@ -78,13 +79,17 @@ func (h *HeadSign) Encode() []byte {
 }
 
 //解码成“标记头”
-func (h *HeadSign) Decode(b []byte) {
+func (h *HeadSign) Decode(b []byte) error {
 	//_ = b[size_sign-1] // bounds check hint to compiler;
 	h.SignType = b[0]
+	if h.SignType != Sign_serverid && h.SignType != Sign_userid {
+		return errors.New("消息头的SignType不存在")
+	}
 	h.SignId = binary.LittleEndian.Uint64(b[1:size_sign])
 	if h.SignType == Sign_serverid {
-		h.Sid, h.Tid = DecodeServerID(h.SignId)
+		h.Tid, h.Sid = DecodeServerID(h.SignId)
 	}
+	return nil
 }
 
 //将二进制流头部的“标记头”重置

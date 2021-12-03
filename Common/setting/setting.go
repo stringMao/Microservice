@@ -17,6 +17,7 @@ type BaseConfig struct {
 	SID            int    `tag:"server" key:"sid"`
 	LogLv          string `tag:"log" key:"level"` //日志等级
 	WebManagerPort int    `tag:"webmanager" key:"port"`
+	ConsulAddr     string `tag:"webmanager" key:"consuladdr"`
 }
 
 //AppCfg 系统配置的全局变量
@@ -95,6 +96,10 @@ func (s *BaseConfig) GetServerName() string {
 	return GetServerName(s.TID)
 }
 
+func (s *BaseConfig) GetServerTag() string {
+	return GetServerTag(s.TID)
+}
+
 func GetServerName(tid int) string {
 	switch tid {
 	case constant.TID_LoginSvr:
@@ -108,8 +113,8 @@ func GetServerName(tid int) string {
 	}
 }
 
-func (s *BaseConfig) GetServerTag() string {
-	switch s.TID {
+func GetServerTag(tid int) string {
+	switch tid {
 	case constant.TID_LoginSvr:
 		return fmt.Sprintf("登入服")
 	case constant.TID_GateSvr:

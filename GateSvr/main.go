@@ -1,6 +1,7 @@
 package main
 
 import (
+	"Common/log"
 	"Common/svrfind"
 	"Common/util"
 	"Common/webmanager"
@@ -9,7 +10,6 @@ import (
 	"GateSvr/watchdog"
 	"math/rand"
 	"os"
-	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -29,8 +29,8 @@ func main() {
 	// 		fmt.Println(err) //这里的err其实就是panic传入的内容
 	// 	}
 	// }()
-	dbmanager.ConnectDB()
-	dbmanager.ConnectRedis()
+	dbmanager.Init()
+
 	//打开socket监听
 	watchdog.Start()
 
@@ -59,26 +59,41 @@ func registerWebManagerRoute() {
 	}
 	webagent.RegisterRouter(consulCheckHealth)
 
-	go webagent.Start(config.App.Base.WebManagerPort)
+	go webagent.Start(config.App.WebManagerPort)
 }
 
 //服务注册
 func registerToDiscovery() {
-	registration := svrfind.CreateRegistration()
-	registration.ID = config.App.Base.GetServerIDStr()
-	registration.Name = config.App.Base.GetServerName()
-	registration.Port = config.App.ClientPort
+	svritem := svrfind.NewServerItem(config.App.ConsulAddr)
+	svritem.SvrData.ID = config.App.GetServerIDStr()
+	svritem.SvrData.Name = config.App.GetServerName() //本服务的名字
+	svritem.SvrData.Port = config.App.ClientPort
+	svritem.SvrData.Tags = []string{config.App.GetServerTag()}
+	svritem.SvrData.Address = util.GetLocalIP()
+	svritem.SvrData.TaggedAddresses = make(map[string]api.ServiceAddress)
+	svritem.SvrData.TaggedAddresses["client"] = api.ServiceAddress{Address: svritem.SvrData.Address, Port: config.App.ClientPort}
+	svritem.SvrData.TaggedAddresses["server"] = api.ServiceAddress{Address: svritem.SvrData.Address, Port: config.App.ServerPort}
 
-	registration.Tags = []string{config.App.Base.GetServerTag()}
-	registration.Address = util.GetLocalIP()
-	registration.TaggedAddresses = make(map[string]api.ServiceAddress)
-	registration.TaggedAddresses["client"] = api.ServiceAddress{Address: registration.Address, Port: config.App.ClientPort}
-	registration.TaggedAddresses["server"] = api.ServiceAddress{Address: registration.Address, Port: config.App.ServerPort}
+	//svritem.SvrData.Check = svritem.CreateAgentServiceCheck(config.App.Base.WebManagerPort)
+	if svritem.Register(config.App.WebManagerPort) {
+		log.Infoln("服务注册成功!")
+	}
 
-	registration.Meta = make(map[string]string)
-	registration.Meta["online"] = strconv.Itoa(99)
-	registration.Meta["test"] = "test"
+	// registration := svrfind.CreateRegistration()
+	// registration.ID = config.App.GetServerIDStr()
+	// registration.Name = config.App.GetServerName()
+	// registration.Port = config.App.ClientPort
 
-	registration.Check = svrfind.CreateCheck(registration.Address, config.App.Base.WebManagerPort)
-	svrfind.Register(registration)
+	// registration.Tags = []string{config.App.GetServerTag()}
+	// registration.Address = util.GetLocalIP()
+	// registration.TaggedAddresses = make(map[string]api.ServiceAddress)
+	// registration.TaggedAddresses["client"] = api.ServiceAddress{Address: registration.Address, Port: config.App.ClientPort}
+	// registration.TaggedAddresses["server"] = api.ServiceAddress{Address: registration.Address, Port: config.App.ServerPort}
+
+	// //registration.Meta = make(map[string]string)
+	// //registration.Meta["online"] = strconv.Itoa(99)
+	// //registration.Meta["test"] = "test"
+
+	// registration.Check = svrfind.CreateCheck(registration.Address, config.App.WebManagerPort)
+	// svrfind.Register(config.App.ConsulAddr, registration)
 }

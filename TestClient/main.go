@@ -2,11 +2,14 @@ package main
 
 import (
 	"Common/msg"
+	"Common/proto/base"
 	"TestClient/gatesvr"
 	"TestClient/loginsvr"
 	"fmt"
 	"os"
 	"time"
+
+	"github.com/golang/protobuf/proto"
 )
 
 func main() {
@@ -31,7 +34,13 @@ func main() {
 		for {
 			time.Sleep(time.Second * 1)
 			if gatesvr.ConnSucc {
-				gate.TestSend(msg.CreateWholeMsgData(msg.Sign_serverid, 0, msg.MID_Gate, 1, []byte("twes")))
+				msgData := &base.TestMsg{
+					Txt: "这是一条测试消息",
+				}
+				dPro, _ := proto.Marshal(msgData)
+				testmsg := msg.CreateWholeMsgData(msg.Sign_serverid, 3, msg.MID_Hall, msg.Hall_TestMsg, dPro)
+				gate.TestSend(testmsg)
+				//gate.TestSend(msg.CreateWholeMsgData(msg.Sign_serverid, 0, msg.MID_Gate, 1, []byte("twes")))
 			}
 		}
 

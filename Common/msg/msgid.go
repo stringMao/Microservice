@@ -12,3 +12,7 @@ const (
 const (
 	Gate_SendPlayerData uint32 = 1 //下发玩家信息
 )
+
+const (
+	Hall_TestMsg uint32 = 1 //下发玩家信息
+)

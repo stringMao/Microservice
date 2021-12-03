@@ -67,7 +67,7 @@ func (r *RedisData) Open() bool {
 
 	//test redis connect
 
-	log.Logger.Info("redis init success")
+	//log.Logger.Info("redis init success")
 	// pool := &redis.Pool{
 	// 	MaxActive:   100,                              //  最大连接数，即最多的tcp连接数，一般建议往大的配置，但不要超过操作系统文件句柄个数（centos下可以ulimit -n查看）
 	// 	MaxIdle:     10,                               // 最大空闲连接数，即会有这么多个连接提前等待着，但过了超时时间也会关闭。

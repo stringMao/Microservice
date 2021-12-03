@@ -28,7 +28,7 @@ func NewConnTcp(ip string) *ConnTcp {
 
 func (c *ConnTcp) Connect(userid uint64, token string) bool {
 	var err error
-	c.conn, err = net.Dial("tcp", "127.0.0.1:8090") //本机必须用127.0.0.1。直接用ip没法连接
+	c.conn, err = net.Dial("tcp", c.SvrIP) //
 	if err != nil {
 		fmt.Println("connect", c.SvrIP, "fail", err.Error())
 		return false
@@ -54,6 +54,7 @@ func (c *ConnTcp) Connect(userid uint64, token string) bool {
 	}(c)
 
 	c.OpenHeart()
+	//c.SenTestMag()
 
 	buffer := make([]byte, 2048)
 	for {
@@ -78,6 +79,26 @@ func (c *ConnTcp) OpenHeart() {
 			}
 			time.Sleep(time.Second * 1)
 			c.send <- []byte{200}
+		}
+	}()
+}
+
+func (c *ConnTcp) SenTestMag() {
+	//心跳包
+	go func() {
+		for {
+			if !c.open {
+				break
+			}
+			time.Sleep(time.Second * 1)
+			if ConnSucc {
+				msgData := &base.TestMsg{
+					Txt: "这是一条测试消息",
+				}
+				dPro, _ := proto.Marshal(msgData)
+				c.send <- msg.CreateWholeMsgData(msg.Sign_serverid, 3, msg.MID_Hall, msg.Hall_TestMsg, dPro)
+			}
+
 		}
 	}()
 }

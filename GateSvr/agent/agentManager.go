@@ -165,7 +165,7 @@ func (m *AgentManager) TransferToClient(userid uint64, msg []byte) bool {
 func (m *AgentManager) AllocSvr(tid uint32) uint64 {
 	m.rwSvrlock.RLock()
 	defer m.rwSvrlock.RUnlock()
-
+	//TODO 随机负载均衡要以后优化
 	if l, ok := m.serverList[tid]; ok && l != nil && len(l) > 0 {
 		r := rand.Intn(len(l)) //随机负载均衡
 		sid := l[r]

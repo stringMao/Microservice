@@ -13,9 +13,9 @@ import (
 var rwlock *sync.RWMutex = new(sync.RWMutex)
 var gatesvrlist []global.ServerIPInfo
 
-func RefreshSvrList(svrname string, tag string) {
+func RefreshSvrList(s *svrfind.ServerItem, svrname string, tag string) {
 	for {
-		secSvrEntry := svrfind.GetSvr("网关服", "网关服")
+		secSvrEntry := s.GetSvr("网关服", "网关服")
 		rwlock.Lock()
 		gatesvrlist = gatesvrlist[0:0] //清空
 		for _, v := range secSvrEntry {

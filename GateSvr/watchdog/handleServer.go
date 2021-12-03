@@ -51,6 +51,8 @@ func handleServerConnection(conn net.Conn) {
 	agent := agentmanager.AddAgentServer(logindata.Tid, logindata.Sid, conn)
 	if agent == nil { //注册失败
 		return
+	} else {
+		conn.Write(msg.CreateErrSvrMsgData(0, msg.Err_Nomoal, "服务与网关服注册成功"))
 	}
 
 	for {
@@ -58,12 +60,12 @@ func handleServerConnection(conn net.Conn) {
 		conn.SetReadDeadline(time.Now().Add(time.Second * 10)) //借此检测心跳包
 		n, err := conn.Read(buffer)                            //读取客户端传来的内容
 		if err != nil {
-			log.Logger.Debug(conn.RemoteAddr().String(), " server connection error: ", err)
+			log.Logger.Debug(conn.RemoteAddr().String(), " server handleServerConnection error: ", err)
 			return //当远程客户端连接发生错误（断开）后，终止此协程。
 		}
 		//特殊包-心跳包过滤  消息结构[uint8]=200
 		if n == 1 && buffer[0] == 200 {
-			//log.Logger.Debugln("heart")
+			log.Logger.Debugln("heart")
 			continue
 		}
 

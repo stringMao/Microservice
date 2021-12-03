@@ -14,9 +14,10 @@ type ServerConfig struct {
 	// SID            int    `tag:"server" key:"sid"`
 	// LogLv          string `tag:"log" key:"level"` //日志等级
 	// WebManagerPort int    `tag:"webmanager" key:"port"`
-	Base       setting.BaseConfig `base:"true"`
-	ClientPort int                `tag:"business" key:"clientPort"`
-	ServerPort int                `tag:"business" key:"serverPort"`
+	//Base       setting.BaseConfig `base:"true"`
+	setting.BaseConfig `base:"true"`
+	ClientPort         int `tag:"business" key:"clientPort"`
+	ServerPort         int `tag:"business" key:"serverPort"`
 
 	RedisHost     string `tag:"redis" key:"host"`
 	RedisPort     int    `tag:"redis" key:"port"`
@@ -38,8 +39,8 @@ type ServerConfig struct {
 var App = &ServerConfig{}
 
 func Init() {
-	App.Base.TID = constant.TID_GateSvr
+	App.TID = constant.TID_GateSvr
 	setting.LoadAppConfig(App)
 	//日志等级设置
-	log.Setup(App.Base.LogLv)
+	log.Setup(App.LogLv)
 }

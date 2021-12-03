@@ -20,17 +20,19 @@ func handleClientConnection(conn net.Conn) {
 	defer conn.Close()
 
 	//fmt.Println(conn.RemoteAddr())
+	var err error = nil
+	var readLength int = 0       //收到的消息长度
+	buffer := make([]byte, 2048) //建立一个slice
 
 	//连接之后的第一条消息，必须是登入获取userid
-	buffer := make([]byte, 2048) //建立一个slice
 	conn.SetReadDeadline(time.Now().Add(time.Second * 1))
-	n, err := conn.Read(buffer)
+	readLength, err = conn.Read(buffer)
 	if err != nil {
 		log.Error(conn.RemoteAddr().String(), "read first msg error: ", err)
 		return //当远程客户端连接发生错误（断开）后，终止此协程。
 	}
 	logindata := &base.ClientLogin{}
-	err = proto.Unmarshal(buffer[:n], logindata)
+	err = proto.Unmarshal(buffer[:readLength], logindata)
 	if err != nil {
 		log.Errorln(conn.RemoteAddr().String(), "encode first msg error: ", err)
 		return //当远程客户端连接发生错误（断开）后，终止此协程。
@@ -71,21 +73,24 @@ func handleClientConnection(conn net.Conn) {
 		dPro, _ := proto.Marshal(tPro)
 		agent.SendData(msg.CreateWholeProtoData(msg.MID_Gate, msg.Gate_SendPlayerData, dPro))
 	}
+
+	//标记头变量声明
+	signhead := &msg.HeadSign{}
 	for {
 		//开始通讯
 		conn.SetReadDeadline(time.Now().Add(time.Second * 5)) //借此检测心跳包
-		n, err := conn.Read(buffer)                           //读取客户端传来的内容
+		readLength, err = conn.Read(buffer)                   //读取客户端传来的内容
 		if err != nil {
 			log.Debug(conn.RemoteAddr().String(), " connection error: ", err)
 			return //当远程客户端连接发生错误（断开）后，终止此协程。
 		}
 		//特殊包-心跳包过滤  消息结构[uint8]=200
-		if n == 1 && buffer[0] == 200 {
+		if readLength == 1 && buffer[0] == 200 {
 			//log.Logger.Debugln("heart")
 			continue
 		}
 		//消息大小安全检测
-		if n < msg.GetHeadLength() {
+		if readLength < msg.GetHeadLength() {
 			log.Error(conn.RemoteAddr().String(), "msg len too samll", logindata.Userid)
 			return
 		}
@@ -93,13 +98,12 @@ func handleClientConnection(conn net.Conn) {
 		//  [uint8](后面8表示说明，0:后面是serverid 1:后面是userid)
 		//  [uint64](userid(8字节)或者0(4字节)+sid(2字节)+tid(2字节))
 		//  [uint32,uint32,uint32](mainid+sonid+len)+msg
-		signhead := &msg.HeadSign{}
 		signhead.Decode(buffer)
 
 		switch signhead.SignType {
 		case msg.Sign_serverid: //后8位是serverid
 			//修改消息
-			buf := msg.AddSignHead(msg.Sign_userid, logindata.Userid, buffer[msg.GetSignHeadLength():n])
+			buf := msg.AddSignHead(msg.Sign_userid, logindata.Userid, buffer[msg.GetSignHeadLength():readLength])
 
 			//serverid := binary.LittleEndian.Uint64(buffer[1:9])
 			if signhead.Tid == 0 { //发给本服务器
@@ -125,6 +129,8 @@ func handleClientConnection(conn net.Conn) {
 			} else if signhead.Tid != 0 && signhead.Sid != 0 {
 				//允不允许客户端指向发送指定的服务，可能存在风险
 			}
+
+			//fmt.Print("ss")
 		case msg.Sign_userid: //后8位是userid
 			//userid := binary.BigEndian.Uint64(buffer[1:9])
 			log.Error(conn.RemoteAddr().String(), "客户端不能发消息给其他客户端", logindata.Userid, signhead.SignId)
@@ -133,5 +139,6 @@ func handleClientConnection(conn net.Conn) {
 			log.Logger.Error(conn.RemoteAddr().String(), "发现客户端的非法协议", logindata.Userid)
 			return
 		}
+
 	}
 }

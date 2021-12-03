@@ -28,12 +28,23 @@ type RouterAgent struct {
 }
 
 func CreateRouterAgent() *RouterAgent {
+	//gin.New()
 	gin.SetMode(gin.ReleaseMode)
 	return &RouterAgent{
 		Router:       gin.Default(),
 		Group_consul: nil,
 		Group_gm:     nil,
 	}
+}
+
+func CreateRouterAgent2() *RouterAgent {
+	gin.SetMode(gin.ReleaseMode)
+	r := &RouterAgent{
+		Router:       gin.New(),
+		Group_consul: nil,
+		Group_gm:     nil,
+	}
+	return r
 }
 
 //路由注册

@@ -38,7 +38,7 @@ func Signin() (userid uint64, token string, ip string) {
 	}
 	reader := bytes.NewReader(bytesData)
 
-	request, err := http.NewRequest("POST", "http://192.168.41.121:8080/mloginsvr/client/signin", reader)
+	request, err := http.NewRequest("POST", "http://192.168.43.22:8080/mloginsvr/client/signin", reader)
 	if err != nil {
 		log.Logger.Println(err)
 		return

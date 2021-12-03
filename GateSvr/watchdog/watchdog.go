@@ -2,10 +2,11 @@ package watchdog
 
 import (
 	"Common/log"
+	"Common/util"
 	"GateSvr/agent"
 	"GateSvr/config"
+	"fmt"
 	"net"
-	"strconv"
 )
 
 const (
@@ -30,7 +31,7 @@ func Start() {
 
 //Scoket开始监听
 func StartTCPListen(port int, typeid int) {
-	netListen, err := net.Listen("tcp", "localhost:"+strconv.Itoa(port))
+	netListen, err := net.Listen("tcp", fmt.Sprintf("%s:%d", util.GetLocalIP(), port))
 	if err != nil {
 		log.Logger.Fatal(err)
 		return
