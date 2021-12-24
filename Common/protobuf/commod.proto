@@ -7,3 +7,13 @@ option go_package = "base/";
 message Txt{
     string txt=1;
 }
+
+
+message Status{
+    int32 code=1;
+}
+
+message ReplyResult{
+    int32 code=1;
+    string txt=2;
+}

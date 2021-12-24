@@ -6,6 +6,8 @@ import (
 	"Common/msg"
 	"Common/proto/base"
 	"Common/try"
+	"GateSvr/config"
+	"GateSvr/core/send"
 	"GateSvr/logic"
 	"fmt"
 	"net"
@@ -30,7 +32,7 @@ func handleServerConnection(conn net.Conn) {
 	logindata := &base.ServerLogin{}
 	err = proto.Unmarshal(buffer[:n], logindata)
 	if err != nil {
-		log.Logger.Error(conn.RemoteAddr().String(), " read server first msg error: ", err)
+		log.Logger.Error(conn.RemoteAddr().String(), "handleServerConnection proto.Unmarshal ServerLogin error: ", err)
 		return //当远程客户端连接发生错误（断开）后，终止此协程。
 	}
 	fmt.Println(logindata)
@@ -49,10 +51,25 @@ func handleServerConnection(conn net.Conn) {
 	defer agentmanager.RemoveAgentServer(logindata.Tid, logindata.Sid)
 	//身份验证成功,加入管理队列
 	agent := agentmanager.AddAgentServer(logindata.Tid, logindata.Sid, conn)
+
+	loginResult := &base.LoginResult{}
 	if agent == nil { //注册失败
+		loginResult.Code = 1
+		ploginResult, _ := proto.Marshal(loginResult)
+		conn.Write(send.CreateMsgToSvr(msg.GateSvr_SvrLoginResult, ploginResult))
+
+		log.Infof("服务器登入失败，ServerID[%d] TID[%d] SID[%d]", agent.Serverid, logindata.Tid, logindata.Sid)
 		return
 	} else {
-		conn.Write(msg.CreateErrSvrMsgData(0, msg.Err_Nomoal, "服务与网关服注册成功"))
+		//conn.Write(msg.CreateErrSvrMsgData(0, msg.Err_Nomoal, "服务与网关服注册成功"))
+		loginResult.Code = 0
+		loginResult.Tid = uint32(config.App.TID)
+		loginResult.Sid = uint32(config.App.SID)
+		loginResult.Name = config.App.GetServerName()
+		ploginResult, _ := proto.Marshal(loginResult)
+		conn.Write(send.CreateMsgToSvr(msg.GateSvr_SvrLoginResult, ploginResult))
+
+		log.Infof("服务器登入成功，ServerID[%d] TID[%d] SID[%d]", agent.Serverid, logindata.Tid, logindata.Sid)
 	}
 
 	for {
@@ -65,7 +82,7 @@ func handleServerConnection(conn net.Conn) {
 		}
 		//特殊包-心跳包过滤  消息结构[uint8]=200
 		if n == 1 && buffer[0] == 200 {
-			log.Logger.Debugln("heart")
+			//log.Logger.Debugln("heart")
 			continue
 		}
 
@@ -92,7 +109,7 @@ func handleServerConnection(conn net.Conn) {
 		case msg.Sign_userid: //后8位是userid
 			//消息转发给客户端
 			//userid := binary.BigEndian.Uint64(buffer[1:9])
-			agentmanager.TransferToClient(signhead.SignId, buffer[9:n])
+			agentmanager.TransferToClient(signhead.SignId, buffer[msg.GetSignHeadLength():n])
 		default: //发现非法协议
 			log.Errorln(conn.RemoteAddr().String(), "发现服务器的非法协议", logindata.Tid)
 			return

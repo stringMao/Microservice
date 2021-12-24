@@ -15,7 +15,7 @@ var gatesvrlist []global.ServerIPInfo
 
 func RefreshSvrList(s *svrfind.ServerItem, svrname string, tag string) {
 	for {
-		secSvrEntry := s.GetSvr("网关服", "网关服")
+		secSvrEntry := s.GetSvr("网关服", "")
 		rwlock.Lock()
 		gatesvrlist = gatesvrlist[0:0] //清空
 		for _, v := range secSvrEntry {

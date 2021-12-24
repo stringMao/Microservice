@@ -118,6 +118,18 @@ func protoEncodePrint(buf []byte, n int) {
 
 		switch head.MainID {
 		case msg.MID_Err:
+		case msg.MID_Test:
+			switch head.SonID {
+			case msg.Test_1:
+				msgData := &base.TestMsg{}
+				err := proto.Unmarshal(buf[msg.GetProtoHeadLength():n], msgData)
+				if err != nil {
+					fmt.Println("协议解析失败2:", err)
+					return //当远程客户端连接发生错误（断开）后，终止此协程。
+				}
+				fmt.Printf("mainid:%d,sonid:%d,str:%s\n", head.MainID, head.SonID, msgData.Txt)
+			default:
+			}
 		case msg.MID_Hall:
 		case msg.MID_Gate:
 			switch head.SonID {

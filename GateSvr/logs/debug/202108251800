@@ -1,5 +1,0 @@
-time="2021-08-25T18:10:35+08:00" level=debug msg="127.0.0.1:50727 connection error: read tcp 127.0.0.1:8090->127.0.0.1:50727: wsarecv: An existing connection was forcibly closed by the remote host."
-time="2021-08-25T18:20:25+08:00" level=debug msg="127.0.0.1:64446 connection error: read tcp 127.0.0.1:8090->127.0.0.1:64446: wsarecv: An existing connection was forcibly closed by the remote host."
-time="2021-08-25T18:29:15+08:00" level=debug msg="127.0.0.1:53630 connection error: read tcp 127.0.0.1:8090->127.0.0.1:53630: use of closed network connection"
-time="2021-08-25T18:53:53+08:00" level=debug msg="127.0.0.1:63387 connection error: read tcp 127.0.0.1:8090->127.0.0.1:63387: use of closed network connection"
-time="2021-08-25T18:55:09+08:00" level=debug msg="127.0.0.1:63481 connection error: read tcp 127.0.0.1:8090->127.0.0.1:63481: use of closed network connection"

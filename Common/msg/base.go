@@ -118,6 +118,11 @@ func GetSignHeadLength() int {
 	return size_sign
 }
 
+//获得“协议头”的总长度
+func GetProtoHeadLength() int {
+	return size_head
+}
+
 //解码serverid to tid sid
 func DecodeServerID(serverid uint64) (tid, sid uint32) {
 	sid = uint32(serverid & (math.MaxUint32 << 32))

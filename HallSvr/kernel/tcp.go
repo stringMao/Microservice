@@ -2,7 +2,6 @@ package kernel
 
 import (
 	"Common/log"
-	"fmt"
 	"net"
 	"runtime/debug"
 	"sync"
@@ -15,21 +14,17 @@ type ConnTcp struct {
 	SvrIP        string
 	send         chan []byte //消息发送通道
 	wg           sync.WaitGroup
-	callBackFunc func([]byte, int) //消息回调接口
+	callBackFunc func(*ConnTcp, uint64, []byte, uint32) //消息回调接口
+	KeyMap       uint64
 }
 
-func NewConnTcp(ip string, port int, f func([]byte, int)) *ConnTcp {
-	if f == nil {
-		log.Fatalln("NewConnTcp callBackFunc is nil")
-		return nil
-	}
+func NewConnTcp(addr string, callback func(*ConnTcp, uint64, []byte, uint32)) *ConnTcp {
 	return &ConnTcp{
-		open:  false,
-		SvrIP: fmt.Sprintf("%s:%d", ip, port), //
-		send:  make(chan []byte, 1000),
-		//rev:   make(chan []byte, 1000),
-
-		callBackFunc: f,
+		open:         false,
+		SvrIP:        addr, //
+		send:         make(chan []byte, 1000),
+		callBackFunc: callback,
+		KeyMap:       0,
 	}
 }
 
@@ -49,7 +44,7 @@ func (c *ConnTcp) Connect() bool {
 	c.openRead()
 
 	//心跳包发送携程打开
-	c.openHeart()
+	//c.openHeart()
 	return true
 }
 
@@ -96,7 +91,7 @@ func (c *ConnTcp) openRead() {
 			//send <- buffer[:n]
 			msg := make([]byte, n)
 			copy(msg, buffer[:n])
-			c.callBackFunc(msg, n)
+			c.callBackFunc(c, c.KeyMap, msg, uint32(n))
 		}
 	}()
 }
@@ -133,7 +128,7 @@ func (c *ConnTcp) openWrite() {
 	}()
 }
 
-func (c *ConnTcp) openHeart() {
+func (c *ConnTcp) OpenHeart() {
 	c.wg.Add(1)
 	//心跳包
 	go func() {

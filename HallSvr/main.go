@@ -29,7 +29,7 @@ func main() {
 	svritem := registerToDiscovery()
 
 	//
-	watchdog.ConnectGateSvr(svritem)
+	watchdog.ConnectGateSvrs(svritem)
 
 	c := make(chan os.Signal)
 	<-c

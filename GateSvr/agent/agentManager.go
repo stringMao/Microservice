@@ -105,10 +105,20 @@ func (m *AgentManager) AddAgentServer(tid, sid uint32, c net.Conn) *agentServer 
 	//新注册的，需要在serverList记录
 	sidlist, ok := m.serverList[tid]
 	if !ok {
-		sidlist = make([]uint32, 10)
+		sidlist = make([]uint32, 1)
+		sidlist[0] = sid
 		m.serverList[tid] = sidlist
+	} else {
+		//重复判断
+		for _, val := range sidlist {
+			if sid == val {
+				log.Errorf("AddAgentServer is fail,svr is existed! TID[%d] SID[%d]", tid, sid)
+				return nil
+			}
+		}
+		sidlist = append(sidlist, sid)
 	}
-	sidlist = append(sidlist, sid)
+
 	m.AgentServers[s.Serverid] = s
 
 	return s
@@ -119,10 +129,10 @@ func (m *AgentManager) RemoveAgentServer(tid, sid uint32) {
 	m.rwSvrlock.Lock()
 	defer m.rwSvrlock.Unlock()
 
-	if l, ok := m.serverList[tid]; ok {
-		for i := 0; i < len(l); {
-			if l[i] == sid {
-				l = append(l[:i], l[i+1:]...)
+	if _, ok := m.serverList[tid]; ok {
+		for i := 0; i < len(m.serverList[tid]); {
+			if m.serverList[tid][i] == sid {
+				m.serverList[tid] = append(m.serverList[tid][:i], m.serverList[tid][i+1:]...)
 			} else {
 				i++
 			}

@@ -86,14 +86,14 @@ type ServerBase interface {
 }
 
 func (s *BaseConfig) GetServerID() uint64 {
-	return uint64(s.SID)<<16 + uint64(s.TID)
+	return uint64(s.SID)<<32 + uint64(s.TID)
 }
 func (s *BaseConfig) GetServerIDStr() string {
 	return fmt.Sprintf("TID:%d_SID:%d", s.TID, s.SID)
 }
 
 func (s *BaseConfig) GetServerName() string {
-	return GetServerName(s.TID)
+	return GetServerName(s.TID) + s.GetServerIDStr()
 }
 
 func (s *BaseConfig) GetServerTag() string {

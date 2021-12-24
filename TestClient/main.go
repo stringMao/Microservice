@@ -38,7 +38,7 @@ func main() {
 					Txt: "这是一条测试消息",
 				}
 				dPro, _ := proto.Marshal(msgData)
-				testmsg := msg.CreateWholeMsgData(msg.Sign_serverid, 3, msg.MID_Hall, msg.Hall_TestMsg, dPro)
+				testmsg := msg.CreateWholeMsgData(msg.Sign_serverid, 3, msg.MID_Test, msg.Test_1, dPro)
 				gate.TestSend(testmsg)
 				//gate.TestSend(msg.CreateWholeMsgData(msg.Sign_serverid, 0, msg.MID_Gate, 1, []byte("twes")))
 			}

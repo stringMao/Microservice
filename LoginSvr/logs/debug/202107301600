@@ -1,8 +1,0 @@
-time="2021-07-30T16:00:20+08:00" level=debug msg="{Username:test001 Passwd:123 Channel:1}"
-time="2021-07-30T16:00:20+08:00" level=debug msg="登入密码验证成功"
-time="2021-07-30T16:00:20+08:00" level=debug msg="create token:0e48590202fac8a7c06bf31d1e6d2e27"
-time="2021-07-30T16:00:20+08:00" level=debug msg="Response data:{\"status\":0,\"message\":\"\",\"data\":{\"userid\":4,\"token\":\"0e48590202fac8a7c06bf31d1e6d2e27\",\"svrlist\":[{\"Address\":\"192.168.41.121:8090\",\"Svrname\":\"\"}]}}"
-time="2021-07-30T16:05:43+08:00" level=debug msg="{Username:test001 Passwd:123 Channel:1}"
-time="2021-07-30T16:05:43+08:00" level=debug msg="登入密码验证成功"
-time="2021-07-30T16:05:43+08:00" level=debug msg="create token:9efcc5df6af700b6e21c171f0881060c"
-time="2021-07-30T16:05:43+08:00" level=debug msg="Response data:{\"status\":0,\"message\":\"\",\"data\":{\"userid\":4,\"token\":\"9efcc5df6af700b6e21c171f0881060c\",\"svrlist\":[{\"Address\":\"192.168.41.121:8090\",\"Svrname\":\"\"}]}}"

@@ -19,6 +19,7 @@ func handleClientConnection(conn net.Conn) {
 	defer try.Catch()
 	defer conn.Close()
 
+	log.Debug("handleClientConnection===================")
 	//fmt.Println(conn.RemoteAddr())
 	var err error = nil
 	var readLength int = 0       //收到的消息长度
@@ -72,6 +73,8 @@ func handleClientConnection(conn net.Conn) {
 		}
 		dPro, _ := proto.Marshal(tPro)
 		agent.SendData(msg.CreateWholeProtoData(msg.MID_Gate, msg.Gate_SendPlayerData, dPro))
+
+		log.Debugf("客户端登入成功 Userid[%d]", logindata.Userid)
 	}
 
 	//标记头变量声明

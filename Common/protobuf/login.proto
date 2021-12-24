@@ -19,6 +19,15 @@ message ServerLogin{
     string password=3;
 }
 
+//LoginResult 客户端or服务器 登入网关服的结果消息
+message LoginResult{
+    int32  code=1;   //0表示成功
+    string msg=2;
+    uint32  tid=3;
+    uint32  sid=4;
+    string  name=5;
+}
+
 message TestMsg{
     string txt=1;
 }

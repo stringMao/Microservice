@@ -141,6 +141,86 @@ func (x *ServerLogin) GetPassword() string {
 	return ""
 }
 
+//LoginResult 客户端or服务器 登入网关服的结果消息
+type LoginResult struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Code int32  `protobuf:"varint,1,opt,name=code,proto3" json:"code,omitempty"` //0表示成功
+	Msg  string `protobuf:"bytes,2,opt,name=msg,proto3" json:"msg,omitempty"`
+	Tid  uint32 `protobuf:"varint,3,opt,name=tid,proto3" json:"tid,omitempty"`
+	Sid  uint32 `protobuf:"varint,4,opt,name=sid,proto3" json:"sid,omitempty"`
+	Name string `protobuf:"bytes,5,opt,name=name,proto3" json:"name,omitempty"`
+}
+
+func (x *LoginResult) Reset() {
+	*x = LoginResult{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_login_proto_msgTypes[2]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *LoginResult) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LoginResult) ProtoMessage() {}
+
+func (x *LoginResult) ProtoReflect() protoreflect.Message {
+	mi := &file_login_proto_msgTypes[2]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LoginResult.ProtoReflect.Descriptor instead.
+func (*LoginResult) Descriptor() ([]byte, []int) {
+	return file_login_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *LoginResult) GetCode() int32 {
+	if x != nil {
+		return x.Code
+	}
+	return 0
+}
+
+func (x *LoginResult) GetMsg() string {
+	if x != nil {
+		return x.Msg
+	}
+	return ""
+}
+
+func (x *LoginResult) GetTid() uint32 {
+	if x != nil {
+		return x.Tid
+	}
+	return 0
+}
+
+func (x *LoginResult) GetSid() uint32 {
+	if x != nil {
+		return x.Sid
+	}
+	return 0
+}
+
+func (x *LoginResult) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
 type TestMsg struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -152,7 +232,7 @@ type TestMsg struct {
 func (x *TestMsg) Reset() {
 	*x = TestMsg{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_login_proto_msgTypes[2]
+		mi := &file_login_proto_msgTypes[3]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -165,7 +245,7 @@ func (x *TestMsg) String() string {
 func (*TestMsg) ProtoMessage() {}
 
 func (x *TestMsg) ProtoReflect() protoreflect.Message {
-	mi := &file_login_proto_msgTypes[2]
+	mi := &file_login_proto_msgTypes[3]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -178,7 +258,7 @@ func (x *TestMsg) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TestMsg.ProtoReflect.Descriptor instead.
 func (*TestMsg) Descriptor() ([]byte, []int) {
-	return file_login_proto_rawDescGZIP(), []int{2}
+	return file_login_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *TestMsg) GetTxt() string {
@@ -201,9 +281,16 @@ var file_login_proto_rawDesc = []byte{
 	0x64, 0x12, 0x10, 0x0a, 0x03, 0x73, 0x69, 0x64, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0d, 0x52, 0x03,
 	0x73, 0x69, 0x64, 0x12, 0x1a, 0x0a, 0x08, 0x70, 0x61, 0x73, 0x73, 0x77, 0x6f, 0x72, 0x64, 0x18,
 	0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x08, 0x70, 0x61, 0x73, 0x73, 0x77, 0x6f, 0x72, 0x64, 0x22,
-	0x1b, 0x0a, 0x07, 0x54, 0x65, 0x73, 0x74, 0x4d, 0x73, 0x67, 0x12, 0x10, 0x0a, 0x03, 0x74, 0x78,
-	0x74, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x74, 0x78, 0x74, 0x42, 0x07, 0x5a, 0x05,
-	0x62, 0x61, 0x73, 0x65, 0x2f, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x6b, 0x0a, 0x0b, 0x4c, 0x6f, 0x67, 0x69, 0x6e, 0x52, 0x65, 0x73, 0x75, 0x6c, 0x74, 0x12, 0x12,
+	0x0a, 0x04, 0x63, 0x6f, 0x64, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x05, 0x52, 0x04, 0x63, 0x6f,
+	0x64, 0x65, 0x12, 0x10, 0x0a, 0x03, 0x6d, 0x73, 0x67, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52,
+	0x03, 0x6d, 0x73, 0x67, 0x12, 0x10, 0x0a, 0x03, 0x74, 0x69, 0x64, 0x18, 0x03, 0x20, 0x01, 0x28,
+	0x0d, 0x52, 0x03, 0x74, 0x69, 0x64, 0x12, 0x10, 0x0a, 0x03, 0x73, 0x69, 0x64, 0x18, 0x04, 0x20,
+	0x01, 0x28, 0x0d, 0x52, 0x03, 0x73, 0x69, 0x64, 0x12, 0x12, 0x0a, 0x04, 0x6e, 0x61, 0x6d, 0x65,
+	0x18, 0x05, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x22, 0x1b, 0x0a, 0x07,
+	0x54, 0x65, 0x73, 0x74, 0x4d, 0x73, 0x67, 0x12, 0x10, 0x0a, 0x03, 0x74, 0x78, 0x74, 0x18, 0x01,
+	0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x74, 0x78, 0x74, 0x42, 0x07, 0x5a, 0x05, 0x62, 0x61, 0x73,
+	0x65, 0x2f, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -218,11 +305,12 @@ func file_login_proto_rawDescGZIP() []byte {
 	return file_login_proto_rawDescData
 }
 
-var file_login_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_login_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_login_proto_goTypes = []interface{}{
 	(*ClientLogin)(nil), // 0: base.ClientLogin
 	(*ServerLogin)(nil), // 1: base.ServerLogin
-	(*TestMsg)(nil),     // 2: base.TestMsg
+	(*LoginResult)(nil), // 2: base.LoginResult
+	(*TestMsg)(nil),     // 3: base.TestMsg
 }
 var file_login_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
@@ -263,6 +351,18 @@ func file_login_proto_init() {
 			}
 		}
 		file_login_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*LoginResult); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_login_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*TestMsg); i {
 			case 0:
 				return &v.state
@@ -281,7 +381,7 @@ func file_login_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_login_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   3,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
