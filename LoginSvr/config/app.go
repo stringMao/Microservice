@@ -39,10 +39,11 @@ type ServerConfig struct {
 	WordsPath string `tag:"business" key:"wordsfile"` //敏感词文件
 }
 
-var App = &ServerConfig{}
+var App *ServerConfig
 
 //Init 系统配置读取
-func Init() {
+func init() {
+	App = new(ServerConfig)
 	App.Base.TID = constant.TID_LoginSvr
 	setting.LoadAppConfig(App)
 

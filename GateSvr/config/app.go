@@ -36,9 +36,10 @@ type ServerConfig struct {
 	DBMaxIdle  int    `tag:"mysql" key:"maxidleconns"`
 }
 
-var App = &ServerConfig{}
+var App *ServerConfig
 
-func Init() {
+func init() {
+	App = new(ServerConfig)
 	App.TID = constant.TID_GateSvr
 	setting.LoadAppConfig(App)
 	//日志等级设置

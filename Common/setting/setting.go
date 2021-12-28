@@ -25,7 +25,11 @@ var appCfg *goconfig.ConfigFile
 
 func LoadAppConfig(v interface{}) {
 	var err error
-	dirPath := filepath.Dir(os.Args[0])
+	//dirPath, err := filepath.Abs(filepath.Dir(os.Args[0])) //Getwd()
+	dirPath, err := os.Getwd()
+	if err != nil {
+		log.Logger.Fatal("[app.ini]路径未找到 err:", err)
+	}
 	confPath, err := filepath.Abs(dirPath + "/app.ini")
 	if err != nil {
 		log.Logger.Fatal("[app.ini]文件未找到：", err)

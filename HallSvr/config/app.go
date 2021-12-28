@@ -11,9 +11,10 @@ type ServerConfig struct {
 	Port               int `tag:"business" key:"port"`
 }
 
-var App = &ServerConfig{}
+var App *ServerConfig
 
-func Init() {
+func init() {
+	App = new(ServerConfig)
 	App.TID = constant.TID_HallSvr
 	setting.LoadAppConfig(App)
 	//日志等级设置

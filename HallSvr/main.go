@@ -18,26 +18,32 @@ func init() {
 	// 设置随机数种子
 	rand.Seed(time.Now().Unix())
 	//读取系统配置app.ini
-	config.Init()
+	//config.Init()
 }
 
 func main() {
 
 	//web后台功能开启
-	registerWebManagerRoute()
+	if !registerWebManagerRoute() {
+		log.Fatalln("web服务启动失败!")
+	}
+	log.Infoln("web服务启动成功!")
+
 	//服务注册
-	svritem := registerToDiscovery()
+	if !registerToDiscovery() {
+		log.Fatalln("服务注册失败!")
+	}
+	log.Infoln("服务注册成功!")
 
 	//
-	watchdog.ConnectGateSvrs(svritem)
+	watchdog.ConnectGateSvrs()
 
 	c := make(chan os.Signal)
 	<-c
 }
 
 //注册后台路由，启动路由监听
-func registerWebManagerRoute() {
-	webagent := webmanager.CreateRouterAgent()
+func registerWebManagerRoute() bool {
 
 	//健康检查接口
 	consulCheckHealth := webmanager.RouterHelper{
@@ -48,22 +54,18 @@ func registerWebManagerRoute() {
 			svrfind.CheckHealth,
 		},
 	}
-	webagent.RegisterRouter(consulCheckHealth)
+	webmanager.G_WebManager.RegisterRouter(consulCheckHealth)
 
-	go webagent.Start(config.App.WebManagerPort)
+	return webmanager.G_WebManager.Start(config.App.WebManagerPort)
 }
 
 //服务注册
-func registerToDiscovery() *svrfind.ServerItem {
-	svritem := svrfind.NewServerItem(config.App.ConsulAddr)
-	svritem.SvrData.ID = config.App.GetServerIDStr()
-	svritem.SvrData.Name = config.App.GetServerName() //本服务的名字
-	svritem.SvrData.Port = config.App.Port
-	svritem.SvrData.Tags = []string{config.App.GetServerTag()}
-	svritem.SvrData.Address = util.GetLocalIP()
+func registerToDiscovery() bool {
+	svrfind.G_ServerRegister.SvrData.ID = config.App.GetServerIDStr()
+	svrfind.G_ServerRegister.SvrData.Name = config.App.GetServerName() //本服务的名字
+	svrfind.G_ServerRegister.SvrData.Port = config.App.Port
+	svrfind.G_ServerRegister.SvrData.Tags = []string{config.App.GetServerTag()}
+	svrfind.G_ServerRegister.SvrData.Address = util.GetLocalIP()
 	//svritem.SvrData.Check = svritem.CreateAgentServiceCheck(config.App.Base.WebManagerPort)
-	if svritem.Register(config.App.WebManagerPort) {
-		log.Infoln("服务注册成功!")
-	}
-	return svritem
+	return svrfind.G_ServerRegister.Register(config.App.ConsulAddr, config.App.WebManagerPort)
 }

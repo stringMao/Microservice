@@ -27,25 +27,25 @@ type RouterAgent struct {
 	Group_gm     *gin.RouterGroup
 }
 
-func CreateRouterAgent() *RouterAgent {
-	//gin.New()
+var G_WebManager *RouterAgent
+
+func init() {
 	gin.SetMode(gin.ReleaseMode)
-	return &RouterAgent{
-		Router:       gin.Default(),
-		Group_consul: nil,
-		Group_gm:     nil,
-	}
+	G_WebManager = new(RouterAgent)
+	G_WebManager.Router = gin.Default() //gin.New()然后自定义日志输出
+	G_WebManager.Group_consul = nil
+	G_WebManager.Group_gm = nil
 }
 
-func CreateRouterAgent2() *RouterAgent {
-	gin.SetMode(gin.ReleaseMode)
-	r := &RouterAgent{
-		Router:       gin.New(),
-		Group_consul: nil,
-		Group_gm:     nil,
-	}
-	return r
-}
+// func CreateRouterAgent() *RouterAgent {
+// 	//gin.New()
+// 	gin.SetMode(gin.ReleaseMode)
+// 	return &RouterAgent{
+// 		Router:       gin.Default(),
+// 		Group_consul: nil,
+// 		Group_gm:     nil,
+// 	}
+// }
 
 //路由注册
 func (agent *RouterAgent) RegisterRouter(r RouterHelper) bool {
@@ -78,9 +78,12 @@ func (agent *RouterAgent) RegisterRouter(r RouterHelper) bool {
 	return true
 }
 
-func (agent *RouterAgent) Start(webManagerPort int) {
-	err := agent.Router.Run(fmt.Sprintf(":%d", webManagerPort))
-	if err != nil {
-		log.Logger.Fatalln("webManager start is fail, err:", err)
-	}
+func (agent *RouterAgent) Start(webManagerPort int) bool {
+	go func() {
+		err := agent.Router.Run(fmt.Sprintf(":%d", webManagerPort))
+		if err != nil {
+			log.Errorln("webManager Run is err:", err)
+		}
+	}()
+	return true
 }

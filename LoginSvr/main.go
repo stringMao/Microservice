@@ -1,9 +1,7 @@
 package main
 
 import (
-	"Common/constant"
 	"Common/log"
-	"Common/setting"
 	"Common/svrfind"
 	"Common/util"
 	"Common/webmanager"
@@ -11,7 +9,6 @@ import (
 	"LoginSvr/dbmanager"
 	"LoginSvr/global"
 	"LoginSvr/router"
-	"LoginSvr/svrbalanced"
 	"math/rand"
 	"os"
 	"time"
@@ -23,7 +20,7 @@ func init() {
 	// 设置随机数种子
 	rand.Seed(time.Now().Unix())
 	//读取系统配置app.ini
-	config.Init()
+	//config.Init()
 }
 
 func main() {
@@ -37,13 +34,20 @@ func main() {
 	global.Init()
 
 	//web后台功能开启
-	registerWebManagerRoute()
+	if !registerWebManagerRoute() {
+		log.Fatalln("web服务启动失败!")
+	}
+	log.Infoln("web服务启动成功!")
+
 	//7.业务路由
 	router.Init()
 	go router.Start(config.App.Port)
 
-	//服务注册及服务发现
-	registerToDiscovery()
+	//服务注册
+	if !registerToDiscovery() {
+		log.Fatalln("服务注册失败!")
+	}
+	log.Infoln("服务注册成功!")
 
 	c := make(chan os.Signal)
 	<-c
@@ -55,9 +59,7 @@ func ServerEnd() {
 }
 
 //注册后台路由，启动路由监听
-func registerWebManagerRoute() {
-	webagent := webmanager.CreateRouterAgent()
-
+func registerWebManagerRoute() bool {
 	//供consul健康检查接口
 	consulCheckHealth := webmanager.RouterHelper{
 		Type:   webmanager.RouterType_consul,
@@ -67,24 +69,23 @@ func registerWebManagerRoute() {
 			svrfind.CheckHealth,
 		},
 	}
-	webagent.RegisterRouter(consulCheckHealth)
+	webmanager.G_WebManager.RegisterRouter(consulCheckHealth)
 
-	go webagent.Start(config.App.Base.WebManagerPort)
+	return webmanager.G_WebManager.Start(config.App.Base.WebManagerPort)
+
 }
 
 //服务注册
-func registerToDiscovery() {
-	svritem := svrfind.NewServerItem(config.App.Base.ConsulAddr)
-	svritem.SvrData.ID = config.App.Base.GetServerIDStr()
-	svritem.SvrData.Name = config.App.Base.GetServerName() //本服务的名字
-	svritem.SvrData.Port = config.App.Port
-	svritem.SvrData.Tags = []string{config.App.Base.GetServerTag()}
-	svritem.SvrData.Address = util.GetLocalIP()
+func registerToDiscovery() bool {
+	svrfind.G_ServerRegister.SvrData.ID = config.App.Base.GetServerIDStr()
+	svrfind.G_ServerRegister.SvrData.Name = config.App.Base.GetServerName() //本服务的名字
+	svrfind.G_ServerRegister.SvrData.Port = config.App.Port
+	svrfind.G_ServerRegister.SvrData.Tags = []string{config.App.Base.GetServerTag()}
+	svrfind.G_ServerRegister.SvrData.Address = util.GetLocalIP()
 	//svritem.SvrData.Check = svritem.CreateAgentServiceCheck(config.App.Base.WebManagerPort)
-	if svritem.Register(config.App.Base.WebManagerPort) {
-		log.Infoln("服务注册成功!")
-	}
+	return svrfind.G_ServerRegister.Register(config.App.Base.ConsulAddr, config.App.Base.WebManagerPort)
 
 	//拉取该服务需要知道的其他服务状态
-	go svrbalanced.RefreshSvrList(svritem, setting.GetServerName(constant.TID_GateSvr), "")
+	//go svrbalanced.RefreshSvrList(svritem, setting.GetServerName(constant.TID_GateSvr), "")
+
 }

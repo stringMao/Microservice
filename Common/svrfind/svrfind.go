@@ -21,35 +21,36 @@ type ServerItem struct {
 	SvrData *consulapi.AgentServiceRegistration
 }
 
-func NewServerItem(consuladdr string) *ServerItem {
-	item := &ServerItem{
-		Config:  consulapi.DefaultConfig(),
-		Client:  nil,
-		SvrData: new(consulapi.AgentServiceRegistration),
-	}
-	item.Config.Address = consuladdr
-	var err error
-	item.Client, err = consulapi.NewClient(item.Config)
-	if err != nil {
-		log.Logger.Fatal("consul new  client error : ", err)
-		return nil
-	}
+var G_ServerRegister *ServerItem
 
-	return item
+func init() {
+	G_ServerRegister = new(ServerItem)
+	G_ServerRegister.Config = consulapi.DefaultConfig()
+	G_ServerRegister.Client = nil
+	G_ServerRegister.SvrData = new(consulapi.AgentServiceRegistration)
 }
 
 //向consul注册服务
-func (s *ServerItem) Register(checkPort int) bool {
+func (s *ServerItem) Register(consuladdr string, checkPort int) bool {
+	G_ServerRegister.Config.Address = consuladdr
+	var err error
+	G_ServerRegister.Client, err = consulapi.NewClient(G_ServerRegister.Config)
+	if err != nil {
+		log.Errorln("consul new client error : ", err)
+		return false
+	}
+
+	//健康检查接口信息
 	s.SvrData.Check = &consulapi.AgentServiceCheck{
 		HTTP:                           fmt.Sprintf("http://%s:%d/consul%s", s.SvrData.Address, checkPort, "/check"),
 		Timeout:                        "5s",  //设置超时 5s。
 		Interval:                       "5s",  //设置间隔 5s。
 		DeregisterCriticalServiceAfter: "30s", //check失败后30秒删除本服务
 	}
-
-	err := s.Client.Agent().ServiceRegister(s.SvrData)
+	//注册
+	err = s.Client.Agent().ServiceRegister(s.SvrData)
 	if err != nil {
-		log.Logger.Fatal("ServerItem register server error : ", err)
+		log.Errorln("ServerItem register server error : ", err)
 		return false
 	}
 	return true

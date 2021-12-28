@@ -28,7 +28,7 @@ func LoadSensitiveWords() {
 
 func getWordsFileContent(filename string) string {
 	var err error
-	dirPath := filepath.Dir(os.Args[0])
+	dirPath, _ := os.Getwd()
 	filepath, err := filepath.Abs(dirPath + "/src/words/" + filename)
 	if err != nil {
 		log.Logger.Fatalf("[%s]文件路径描述错误：", filename, err)

@@ -16,11 +16,10 @@ import (
 )
 
 //
-func ConnectGateSvrs(svritem *svrfind.ServerItem) {
+func ConnectGateSvrs() {
 	//	先清空原
-
 	//连接GateSvr
-	gatelist := svritem.GetSvr(setting.GetServerName(constant.TID_GateSvr), "")
+	gatelist := svrfind.G_ServerRegister.GetSvr(setting.GetServerName(constant.TID_GateSvr), "")
 	for k, v := range gatelist {
 		fmt.Println(k, "  ", v.Service.Address)
 		fmt.Println(k, "  ", v.Service.Port)
@@ -44,7 +43,6 @@ func ConnectGateSvrs(svritem *svrfind.ServerItem) {
 				log.Errorf("ConnectGateSvr proto.Marshal err:%s", err)
 			}
 			conn.SendData(pData)
-
 		}
 	}
 }

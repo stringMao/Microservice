@@ -20,7 +20,7 @@ func init() {
 	// 设置随机数种子
 	rand.Seed(time.Now().Unix())
 	//读取系统配置app.ini
-	config.Init()
+	//config.Init()
 }
 
 func main() {
@@ -29,25 +29,30 @@ func main() {
 	// 		fmt.Println(err) //这里的err其实就是panic传入的内容
 	// 	}
 	// }()
+
 	dbmanager.Init()
 
-	//打开socket监听
+	//打开socket业务监听
 	watchdog.Start()
 
 	//web后台功能开启
-	registerWebManagerRoute()
+	if !registerWebManagerRoute() {
+		log.Fatalln("web服务启动失败!")
+	}
+	log.Infoln("web服务启动成功!")
 
 	//服务注册
-	registerToDiscovery()
+	if !registerToDiscovery() {
+		log.Fatalln("服务注册失败!")
+	}
+	log.Infoln("服务注册成功!")
 
 	c := make(chan os.Signal)
 	<-c
 }
 
 //注册后台路由，启动路由监听
-func registerWebManagerRoute() {
-	webagent := webmanager.CreateRouterAgent()
-
+func registerWebManagerRoute() bool {
 	//健康检查接口
 	consulCheckHealth := webmanager.RouterHelper{
 		Type:   webmanager.RouterType_consul,
@@ -57,27 +62,25 @@ func registerWebManagerRoute() {
 			svrfind.CheckHealth,
 		},
 	}
-	webagent.RegisterRouter(consulCheckHealth)
+	webmanager.G_WebManager.RegisterRouter(consulCheckHealth)
 
-	go webagent.Start(config.App.WebManagerPort)
+	//启动web服务
+	return webmanager.G_WebManager.Start(config.App.WebManagerPort)
 }
 
 //服务注册
-func registerToDiscovery() {
-	svritem := svrfind.NewServerItem(config.App.ConsulAddr)
-	svritem.SvrData.ID = config.App.GetServerIDStr()
-	svritem.SvrData.Name = config.App.GetServerName() //本服务的名字
-	svritem.SvrData.Port = config.App.ClientPort
-	svritem.SvrData.Tags = []string{config.App.GetServerTag()}
-	svritem.SvrData.Address = util.GetLocalIP()
-	svritem.SvrData.TaggedAddresses = make(map[string]api.ServiceAddress)
-	svritem.SvrData.TaggedAddresses["client"] = api.ServiceAddress{Address: svritem.SvrData.Address, Port: config.App.ClientPort}
-	svritem.SvrData.TaggedAddresses["server"] = api.ServiceAddress{Address: svritem.SvrData.Address, Port: config.App.ServerPort}
+func registerToDiscovery() bool {
+	svrfind.G_ServerRegister.SvrData.ID = config.App.GetServerIDStr()
+	svrfind.G_ServerRegister.SvrData.Name = config.App.GetServerName() //本服务的名字
+	svrfind.G_ServerRegister.SvrData.Port = config.App.ClientPort
+	svrfind.G_ServerRegister.SvrData.Tags = []string{config.App.GetServerTag()}
+	svrfind.G_ServerRegister.SvrData.Address = util.GetLocalIP()
+	svrfind.G_ServerRegister.SvrData.TaggedAddresses = make(map[string]api.ServiceAddress)
+	svrfind.G_ServerRegister.SvrData.TaggedAddresses["client"] = api.ServiceAddress{Address: svrfind.G_ServerRegister.SvrData.Address, Port: config.App.ClientPort}
+	svrfind.G_ServerRegister.SvrData.TaggedAddresses["server"] = api.ServiceAddress{Address: svrfind.G_ServerRegister.SvrData.Address, Port: config.App.ServerPort}
 
 	//svritem.SvrData.Check = svritem.CreateAgentServiceCheck(config.App.Base.WebManagerPort)
-	if svritem.Register(config.App.WebManagerPort) {
-		log.Infoln("服务注册成功!")
-	}
+	return svrfind.G_ServerRegister.Register(config.App.ConsulAddr, config.App.WebManagerPort)
 
 	// registration := svrfind.CreateRegistration()
 	// registration.ID = config.App.GetServerIDStr()
