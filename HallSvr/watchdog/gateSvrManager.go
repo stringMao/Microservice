@@ -6,7 +6,6 @@ import (
 	"Common/log"
 	"Common/msg"
 	"Common/proto/base"
-	"Common/setting"
 	"Common/svrfind"
 	"HallSvr/config"
 	"HallSvr/kernel"
@@ -18,8 +17,8 @@ import (
 //
 func ConnectGateSvrs() {
 	//	先清空原
-	//连接GateSvr
-	gatelist := svrfind.G_ServerRegister.GetSvr(setting.GetServerName(constant.TID_GateSvr), "")
+	//连接GateSvr  setting.GetServerName(constant.TID_GateSvr)
+	gatelist := svrfind.G_ServerRegister.GetSvr(constant.GetServerName(constant.TID_GateSvr), constant.GetServerTag(constant.TID_GateSvr))
 	for k, v := range gatelist {
 		fmt.Println(k, "  ", v.Service.Address)
 		fmt.Println(k, "  ", v.Service.Port)
@@ -119,7 +118,7 @@ func HandleClientMessage(key uint64, userid uint64, mainid, sonid uint32, len ui
 
 func SendMsgToClient(key uint64, userid uint64, mainid, sonid uint32, len uint32, data []byte) {
 	msgData := &base.TestMsg{
-		Txt: fmt.Sprintf("收到测试消息,我是[%s]", config.App.GetServerName()),
+		Txt: fmt.Sprintf("收到测试消息,我是[%s]", constant.GetServerIDName(config.App.TID, config.App.SID)),
 	}
 	dPro, _ := proto.Marshal(msgData)
 	testmsg := msg.CreateWholeMsgData(msg.Sign_userid, userid, msg.MID_Test, msg.Test_1, dPro)

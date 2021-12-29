@@ -2,6 +2,7 @@ package svrbalanced
 
 //负载均衡相关
 import (
+	"Common/constant"
 	"Common/svrfind"
 	"LoginSvr/global"
 	"fmt"
@@ -13,20 +14,23 @@ import (
 var rwlock *sync.RWMutex = new(sync.RWMutex)
 var gatesvrlist []global.ServerIPInfo
 
-func RefreshSvrList(s *svrfind.ServerItem, svrname string, tag string) {
-	for {
-		secSvrEntry := s.GetSvr("网关服", "")
-		rwlock.Lock()
-		gatesvrlist = gatesvrlist[0:0] //清空
-		for _, v := range secSvrEntry {
-			//fmt.Println(k, "  ", v.Service.Address)
-			//fmt.Println(k, "  ", v.Service.Port)
-			//fmt.Printf(" %d:%+v \n", k, v.Service)
-			gatesvrlist = append(gatesvrlist, global.ServerIPInfo{Address: fmt.Sprintf("%s:%d", v.Service.Address, v.Service.Port)})
+func RefreshGateSvrList() {
+	go func() {
+		for {
+			secSvrEntry := svrfind.G_ServerRegister.GetSvr(constant.GetServerName(constant.TID_GateSvr), constant.GetServerTag(constant.TID_GateSvr))
+			rwlock.Lock()
+			gatesvrlist = gatesvrlist[0:0] //清空
+			for _, v := range secSvrEntry {
+				//fmt.Println(k, "  ", v.Service.Address)
+				//fmt.Println(k, "  ", v.Service.Port)
+				//fmt.Printf(" %d:%+v \n", k, v.Service)
+				gatesvrlist = append(gatesvrlist, global.ServerIPInfo{Address: fmt.Sprintf("%s:%d", v.Service.Address, v.Service.Port)})
+			}
+			rwlock.Unlock()
+			time.Sleep(time.Second * 10)
 		}
-		rwlock.Unlock()
-		time.Sleep(time.Second * 10)
-	}
+	}()
+
 }
 
 //随机负载均衡

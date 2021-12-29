@@ -6,5 +6,5 @@ import (
 )
 
 func CreateMsgToSvr(sonid uint32, data []byte) []byte {
-	return msg.CreateWholeMsgData(msg.Sign_serverid, config.App.GetServerID(), msg.MID_Gate, sonid, data)
+	return msg.CreateWholeMsgData(msg.Sign_serverid, config.App.ServerID, msg.MID_Gate, sonid, data)
 }

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"Common/constant"
 	"Common/log"
 	"Common/svrfind"
 	"Common/util"
@@ -61,10 +62,10 @@ func registerWebManagerRoute() bool {
 
 //服务注册
 func registerToDiscovery() bool {
-	svrfind.G_ServerRegister.SvrData.ID = config.App.GetServerIDStr()
-	svrfind.G_ServerRegister.SvrData.Name = config.App.GetServerName() //本服务的名字
+	svrfind.G_ServerRegister.SvrData.ID = constant.GetServerIDName(config.App.TID, config.App.SID)
+	svrfind.G_ServerRegister.SvrData.Name = constant.GetServerName(config.App.TID) //本服务的名字
 	svrfind.G_ServerRegister.SvrData.Port = config.App.Port
-	svrfind.G_ServerRegister.SvrData.Tags = []string{config.App.GetServerTag()}
+	svrfind.G_ServerRegister.SvrData.Tags = []string{constant.GetServerTag(config.App.TID)}
 	svrfind.G_ServerRegister.SvrData.Address = util.GetLocalIP()
 	//svritem.SvrData.Check = svritem.CreateAgentServiceCheck(config.App.Base.WebManagerPort)
 	return svrfind.G_ServerRegister.Register(config.App.ConsulAddr, config.App.WebManagerPort)

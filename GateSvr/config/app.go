@@ -40,8 +40,10 @@ var App *ServerConfig
 
 func init() {
 	App = new(ServerConfig)
-	App.TID = constant.TID_GateSvr
+
 	setting.LoadAppConfig(App)
+	App.TID = constant.TID_GateSvr
+	App.ServerID = constant.GetServerID(App.TID, App.SID)
 	//日志等级设置
 	log.Setup(App.LogLv)
 }

@@ -44,8 +44,9 @@ var App *ServerConfig
 //Init 系统配置读取
 func init() {
 	App = new(ServerConfig)
-	App.Base.TID = constant.TID_LoginSvr
 	setting.LoadAppConfig(App)
+	App.Base.TID = constant.TID_LoginSvr
+	App.Base.ServerID = constant.GetServerID(App.Base.TID, App.Base.SID)
 
 	//日志等级设置
 	log.Setup(App.Base.LogLv)

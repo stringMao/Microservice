@@ -1,6 +1,7 @@
 package main
 
 import (
+	"Common/constant"
 	"Common/log"
 	"Common/svrfind"
 	"Common/util"
@@ -9,6 +10,7 @@ import (
 	"LoginSvr/dbmanager"
 	"LoginSvr/global"
 	"LoginSvr/router"
+	"LoginSvr/svrbalanced"
 	"math/rand"
 	"os"
 	"time"
@@ -49,6 +51,9 @@ func main() {
 	}
 	log.Infoln("服务注册成功!")
 
+	//拉取该服务需要知道的其他服务状态
+	svrbalanced.RefreshGateSvrList()
+
 	c := make(chan os.Signal)
 	<-c
 }
@@ -77,15 +82,12 @@ func registerWebManagerRoute() bool {
 
 //服务注册
 func registerToDiscovery() bool {
-	svrfind.G_ServerRegister.SvrData.ID = config.App.Base.GetServerIDStr()
-	svrfind.G_ServerRegister.SvrData.Name = config.App.Base.GetServerName() //本服务的名字
+	svrfind.G_ServerRegister.SvrData.ID = constant.GetServerIDName(config.App.Base.TID, config.App.Base.SID)
+	svrfind.G_ServerRegister.SvrData.Name = constant.GetServerName(config.App.Base.TID) //本服务的名字
 	svrfind.G_ServerRegister.SvrData.Port = config.App.Port
-	svrfind.G_ServerRegister.SvrData.Tags = []string{config.App.Base.GetServerTag()}
+	svrfind.G_ServerRegister.SvrData.Tags = []string{constant.GetServerTag(config.App.Base.TID)}
 	svrfind.G_ServerRegister.SvrData.Address = util.GetLocalIP()
 	//svritem.SvrData.Check = svritem.CreateAgentServiceCheck(config.App.Base.WebManagerPort)
 	return svrfind.G_ServerRegister.Register(config.App.Base.ConsulAddr, config.App.Base.WebManagerPort)
-
-	//拉取该服务需要知道的其他服务状态
-	//go svrbalanced.RefreshSvrList(svritem, setting.GetServerName(constant.TID_GateSvr), "")
 
 }

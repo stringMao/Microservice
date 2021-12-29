@@ -2,6 +2,7 @@ package watchdog
 
 //服务器连接的消息处理
 import (
+	"Common/constant"
 	"Common/log"
 	"Common/msg"
 	"Common/proto/base"
@@ -65,7 +66,7 @@ func handleServerConnection(conn net.Conn) {
 		loginResult.Code = 0
 		loginResult.Tid = uint32(config.App.TID)
 		loginResult.Sid = uint32(config.App.SID)
-		loginResult.Name = config.App.GetServerName()
+		loginResult.Name = constant.GetServerIDName(config.App.TID, config.App.SID)
 		ploginResult, _ := proto.Marshal(loginResult)
 		conn.Write(send.CreateMsgToSvr(msg.GateSvr_SvrLoginResult, ploginResult))
 

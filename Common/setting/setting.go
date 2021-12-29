@@ -1,9 +1,7 @@
 package setting
 
 import (
-	"Common/constant"
 	"Common/log"
-	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -14,7 +12,8 @@ import (
 //BaseConfig 基础配置，必须要读取到的
 type BaseConfig struct {
 	TID            int
-	SID            int    `tag:"server" key:"sid"`
+	SID            int `tag:"server" key:"sid"`
+	ServerID       uint64
 	LogLv          string `tag:"log" key:"level"` //日志等级
 	WebManagerPort int    `tag:"webmanager" key:"port"`
 	ConsulAddr     string `tag:"webmanager" key:"consuladdr"`
@@ -79,53 +78,5 @@ func Parsing(val reflect.Value) {
 			}
 
 		}
-	}
-}
-
-type ServerBase interface {
-	GetServerID() uint64
-	GetServerIDStr() string
-	GetServerName() string
-	GetServerTag() string
-}
-
-func (s *BaseConfig) GetServerID() uint64 {
-	return uint64(s.SID)<<32 + uint64(s.TID)
-}
-func (s *BaseConfig) GetServerIDStr() string {
-	return fmt.Sprintf("TID:%d_SID:%d", s.TID, s.SID)
-}
-
-func (s *BaseConfig) GetServerName() string {
-	return GetServerName(s.TID) + s.GetServerIDStr()
-}
-
-func (s *BaseConfig) GetServerTag() string {
-	return GetServerTag(s.TID)
-}
-
-func GetServerName(tid int) string {
-	switch tid {
-	case constant.TID_LoginSvr:
-		return "登入服"
-	case constant.TID_GateSvr:
-		return "网关服"
-	case constant.TID_HallSvr:
-		return "大厅服"
-	default:
-		return "未命名"
-	}
-}
-
-func GetServerTag(tid int) string {
-	switch tid {
-	case constant.TID_LoginSvr:
-		return fmt.Sprintf("登入服")
-	case constant.TID_GateSvr:
-		return fmt.Sprintf("网关服")
-	case constant.TID_HallSvr:
-		return fmt.Sprintf("大厅服")
-	default:
-		return fmt.Sprintf("未命名")
 	}
 }
