@@ -1,10 +1,13 @@
 package watchdog
 
 import (
+	"Common/constant"
 	"Common/log"
 	"Common/msg"
 	"Common/proto/base"
+	"HallSvr/config"
 	"HallSvr/kernel"
+	"fmt"
 
 	"github.com/golang/protobuf/proto"
 )
@@ -86,7 +89,7 @@ func OnEventSvrMessage(serverid uint64, mainid, sonid uint32, len uint32, data [
 	case msg.MID_Gate:
 		switch sonid {
 		case msg.GateSvr_SvrLoginResult: //网关服登入结果
-			OnEventLoginGateSvr(serverid, len, data)
+			DoLoginGateSvr(serverid, len, data)
 		default:
 		}
 	case msg.MID_Err:
@@ -104,7 +107,7 @@ func OnEventClientMessage(userid uint64, gatesvrid uint64, mainid, sonid uint32,
 	case msg.MID_Test:
 		switch sonid {
 		case msg.Test_1:
-			HandleClientMessage(gatesvrid, userid, mainid, sonid, len, data)
+			DoClientTestMessage(gatesvrid, userid, mainid, sonid, len, data)
 		default:
 		}
 	case msg.MID_Err:
@@ -119,10 +122,56 @@ func OnEventSelfMessage(mainid, sonid uint32, len uint32, data []byte) {
 	log.Debugf("OnEventSelfMessage:mainid[%d],sonid[%d]", mainid, sonid)
 }
 
+func HandleErr(serverid uint64, codeid int) {
+	if codeid == 1 { //断线
+		kernel.GetManagerSvrs().DeleteGateSvr(serverid)
+	}
+}
+
+//消息总分发入口
+func DistributeMessage(id uint64, data []byte, len uint32) {
+	signhead := &msg.HeadSign{}
+	signhead.Decode(data)
+
+	switch signhead.SignType {
+	case msg.Sign_serverid: //后8位是serverid
+		head := &msg.HeadProto{}
+		head.Decode(data[msg.GetSignHeadLength():])
+
+		data := SvrMsgData{
+			ServerId: signhead.SignId,
+			MsgHead:  head,
+			MsgData:  data[msg.GetHeadLength():],
+		}
+		G_SvrMsg <- data
+	case msg.Sign_userid: //后8位是userid
+		head := &msg.HeadProto{}
+		head.Decode(data[msg.GetSignHeadLength():])
+
+		data := ClientMsgData{
+			UserId:  signhead.SignId,
+			GateSvr: id,
+			MsgHead: head,
+			MsgData: data[msg.GetHeadLength():],
+		}
+		G_ClientMsg <- data
+	case msg.Sign_Self:
+		head := &msg.HeadProto{}
+		head.Decode(data[msg.GetSignHeadLength():])
+
+		data := SelfMsgData{
+			MsgHead: head,
+			MsgData: data[msg.GetHeadLength():],
+		}
+		G_SelfMsg <- data
+	default:
+	}
+}
+
 //=具体业务消息逻辑处理===========================
 
 //网关服登入结果
-func OnEventLoginGateSvr(id uint64, len uint32, data []byte) bool {
+func DoLoginGateSvr(id uint64, len uint32, data []byte) bool {
 	c, ok := m_tempConnMap[id]
 	if !ok {
 		return false
@@ -149,4 +198,34 @@ func OnEventLoginGateSvr(id uint64, len uint32, data []byte) bool {
 	agent.StartWork()
 
 	return true
+}
+
+func DoClientTestMessage(key uint64, userid uint64, mainid, sonid uint32, len uint32, data []byte) {
+
+	msgData := &base.TestMsg{}
+	err := proto.Unmarshal(data[:len], msgData)
+	if err != nil {
+		fmt.Println("协议解析失败2:", err)
+		return //当远程客户端连接发生错误（断开）后，终止此协程。
+	}
+	fmt.Printf("userid:%d,mainid:%d,sonid:%d,str:%s\n", userid, mainid, sonid, msgData.Txt)
+
+	//回复
+	msgData = &base.TestMsg{
+		Txt: fmt.Sprintf("收到测试消息,我是[%s]", constant.GetServerIDName(config.App.TID, config.App.SID)),
+	}
+	dPro, _ := proto.Marshal(msgData)
+	//testmsg := msg.CreateWholeMsgData(msg.Sign_userid, userid, msg.MID_Test, msg.Test_1, dPro)
+
+	SendMsgToClient(key, userid, mainid, sonid, dPro)
+}
+
+func SendMsgToClient(key uint64, userid uint64, mainid, sonid uint32, data []byte) {
+	// msgData := &base.TestMsg{
+	// 	Txt: fmt.Sprintf("收到测试消息,我是[%s]", constant.GetServerIDName(config.App.TID, config.App.SID)),
+	// }
+	// dPro, _ := proto.Marshal(msgData)
+	testmsg := msg.CreateWholeMsgData(msg.Sign_userid, userid, msg.MID_Test, msg.Test_1, data)
+
+	kernel.GetManagerSvrs().SendData(key, testmsg)
 }
