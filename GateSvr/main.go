@@ -9,6 +9,7 @@ import (
 	"GateSvr/config"
 	"GateSvr/dbmanager"
 	"GateSvr/watchdog"
+	"fmt"
 	"math/rand"
 	"os"
 	"time"
@@ -80,6 +81,10 @@ func registerToDiscovery() bool {
 	svrfind.G_ServerRegister.SvrData.TaggedAddresses["client"] = api.ServiceAddress{Address: svrfind.G_ServerRegister.SvrData.Address, Port: config.App.ClientPort}
 	svrfind.G_ServerRegister.SvrData.TaggedAddresses["server"] = api.ServiceAddress{Address: svrfind.G_ServerRegister.SvrData.Address, Port: config.App.ServerPort}
 
+	svrfind.G_ServerRegister.SvrData.Meta = make(map[string]string)
+	svrfind.G_ServerRegister.SvrData.Meta["TID"] = fmt.Sprintf("%d", config.App.TID)
+	svrfind.G_ServerRegister.SvrData.Meta["SID"] = fmt.Sprintf("%d", config.App.SID)
+	svrfind.G_ServerRegister.SvrData.Meta["ServerID"] = fmt.Sprintf("%d", constant.GetServerID(config.App.TID, config.App.SID))
 	//svritem.SvrData.Check = svritem.CreateAgentServiceCheck(config.App.Base.WebManagerPort)
 	return svrfind.G_ServerRegister.Register(config.App.ConsulAddr, config.App.WebManagerPort)
 

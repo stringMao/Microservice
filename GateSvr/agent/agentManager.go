@@ -9,6 +9,38 @@ import (
 	"time"
 )
 
+//=============
+type SvrListMap map[uint32][]uint32
+
+func (m SvrListMap) Add(key, value uint32) {
+	if len(m[key]) == 0 {
+		m[key] = []uint32{value}
+	} else {
+		m[key] = append(m[key], value)
+	}
+}
+
+func (m SvrListMap) DeleteValue(key, value uint32) {
+	if _, ok := m[key]; ok {
+		for i := 0; i < len(m[key]); {
+			if m[key][i] == value {
+				m[key] = append(m[key][:i], m[key][i+1:]...)
+			} else {
+				i++
+			}
+		}
+	}
+}
+func (m SvrListMap) RandOneValue(key uint32) uint32 {
+	if length := len(m[key]); length > 0 {
+		r := rand.Intn(length)
+		return m[key][r]
+	}
+	return 0
+}
+
+//=======================
+
 type ServerObj map[uint16]*agentServer //uint16=sid
 
 //var m_conManagerMap map[int64]agentManager.Agent = make(map[int64]agentManager.Agent, 1)
@@ -16,7 +48,7 @@ type AgentManager struct {
 	AgentClients map[uint64]*agentClient //客户端列表
 	rwClientLock *sync.RWMutex
 
-	serverList   map[uint32][]uint32 //tid对应的sid列表
+	serverList   SvrListMap //tid对应的sid列表
 	AgentServers map[uint64]*agentServer
 	rwSvrlock    *sync.RWMutex //服务列表的读写锁
 
@@ -26,7 +58,7 @@ func NewAgentManager() *AgentManager {
 	return &AgentManager{
 		AgentClients: make(map[uint64]*agentClient, 1),
 		rwClientLock: new(sync.RWMutex),
-		serverList:   make(map[uint32][]uint32, 10),
+		serverList:   make(SvrListMap, 10),
 		AgentServers: make(map[uint64]*agentServer, 100),
 		rwSvrlock:    new(sync.RWMutex),
 	}
@@ -102,22 +134,9 @@ func (m *AgentManager) AddAgentServer(tid, sid uint32, c net.Conn) *agentServer 
 	m.rwSvrlock.Lock()
 	defer m.rwSvrlock.Unlock()
 
+	log.Debugf("服务器加入 TID[%d] SID[%d]", tid, sid)
 	//新注册的，需要在serverList记录
-	sidlist, ok := m.serverList[tid]
-	if !ok {
-		sidlist = make([]uint32, 1)
-		sidlist[0] = sid
-		m.serverList[tid] = sidlist
-	} else {
-		//重复判断
-		for _, val := range sidlist {
-			if sid == val {
-				log.Errorf("AddAgentServer is fail,svr is existed! TID[%d] SID[%d]", tid, sid)
-				return nil
-			}
-		}
-		sidlist = append(sidlist, sid)
-	}
+	m.serverList.Add(tid, sid)
 
 	m.AgentServers[s.Serverid] = s
 
@@ -129,15 +148,10 @@ func (m *AgentManager) RemoveAgentServer(tid, sid uint32) {
 	m.rwSvrlock.Lock()
 	defer m.rwSvrlock.Unlock()
 
-	if _, ok := m.serverList[tid]; ok {
-		for i := 0; i < len(m.serverList[tid]); {
-			if m.serverList[tid][i] == sid {
-				m.serverList[tid] = append(m.serverList[tid][:i], m.serverList[tid][i+1:]...)
-			} else {
-				i++
-			}
-		}
-	}
+	log.Debugf("移除一个服务器TID[%d] SID[%d]", tid, sid)
+	m.serverList.DeleteValue(tid, sid)
+
+	log.Debugf("serverList[tid] len=%d", len(m.serverList[tid]))
 
 	serverid := msg.EncodeServerID(tid, sid)
 	if a, ok := m.AgentServers[serverid]; ok {
@@ -176,12 +190,17 @@ func (m *AgentManager) AllocSvr(tid uint32) uint64 {
 	m.rwSvrlock.RLock()
 	defer m.rwSvrlock.RUnlock()
 	//TODO 随机负载均衡要以后优化
-	if l, ok := m.serverList[tid]; ok && l != nil && len(l) > 0 {
-		r := rand.Intn(len(l)) //随机负载均衡
-		sid := l[r]
-		serverid := msg.EncodeServerID(tid, sid)
-
-		return serverid
+	sid := m.serverList.RandOneValue(tid)
+	if sid > 0 {
+		return msg.EncodeServerID(tid, sid)
 	}
+
+	// if l, ok := m.serverList[tid]; ok && l != nil && len(l) > 0 {
+	// 	r := rand.Intn(len(l)) //随机负载均衡
+	// 	sid := l[r]
+	// 	serverid := msg.EncodeServerID(tid, sid)
+
+	// 	return serverid
+	// }
 	return 0
 }

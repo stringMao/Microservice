@@ -8,6 +8,7 @@ import (
 	"Common/webmanager"
 	"HallSvr/config"
 	"HallSvr/watchdog"
+	"fmt"
 	"math/rand"
 	"os"
 	"time"
@@ -37,7 +38,7 @@ func main() {
 	log.Infoln("服务注册成功!")
 
 	//
-	watchdog.ConnectGateSvrs()
+	watchdog.StartWork()
 
 	c := make(chan os.Signal)
 	<-c
@@ -67,6 +68,11 @@ func registerToDiscovery() bool {
 	svrfind.G_ServerRegister.SvrData.Port = config.App.Port
 	svrfind.G_ServerRegister.SvrData.Tags = []string{constant.GetServerTag(config.App.TID)}
 	svrfind.G_ServerRegister.SvrData.Address = util.GetLocalIP()
+
+	svrfind.G_ServerRegister.SvrData.Meta = make(map[string]string)
+	svrfind.G_ServerRegister.SvrData.Meta["TID"] = fmt.Sprintf("%d", config.App.TID)
+	svrfind.G_ServerRegister.SvrData.Meta["SID"] = fmt.Sprintf("%d", config.App.SID)
+	svrfind.G_ServerRegister.SvrData.Meta["ServerID"] = fmt.Sprintf("%d", constant.GetServerID(config.App.TID, config.App.SID))
 	//svritem.SvrData.Check = svritem.CreateAgentServiceCheck(config.App.Base.WebManagerPort)
 	return svrfind.G_ServerRegister.Register(config.App.ConsulAddr, config.App.WebManagerPort)
 }

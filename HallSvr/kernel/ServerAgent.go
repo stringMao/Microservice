@@ -21,7 +21,7 @@ func (agent *ServerAgent) Close() {
 
 func (agent *ServerAgent) StartWork() {
 	if agent.ConnObject != nil {
-		agent.ConnObject.OpenHeart()
+		//agent.ConnObject.HeartSwitch = true
 	}
 }
 

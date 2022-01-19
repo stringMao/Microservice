@@ -52,6 +52,7 @@ func (h *HeadProto) Decode(b []byte) {
 
 const Sign_serverid uint8 = 1 //表示 serverid
 const Sign_userid uint8 = 2   //表示 userid
+const Sign_Self uint8 = 3     //自己内部消息
 
 type HeadSign struct {
 	SignType uint8  //sign_serverid sign_userid
@@ -170,4 +171,17 @@ func CreateWholeProtoData(mainid, sonid uint32, data []byte) []byte {
 //为协议流添加“标记头”
 func AddSignHead(signtype uint8, id uint64, data []byte) []byte {
 	return append(CreateSignHead(signtype, id), data...)
+}
+
+//完整的消息结构
+type WholeProtoStruct struct {
+	Sign HeadSign
+	Head HeadProto
+	Data []byte
+}
+
+//标准的协议结构
+type ProtoStruct struct {
+	Head HeadProto
+	Data []byte
 }

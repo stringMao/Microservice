@@ -39,6 +39,8 @@ func LoadAppConfig(v interface{}) {
 	}
 	val := reflect.ValueOf(v).Elem()
 	Parsing(val)
+
+	
 }
 
 func Parsing(val reflect.Value) {
