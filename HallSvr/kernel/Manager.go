@@ -51,3 +51,7 @@ func (m *ManagerSvrs) IsExist(serverid uint64) bool {
 	}
 	return false
 }
+
+func SendData(key uint64, data []byte) bool {
+	return instance.SendData(key, data)
+}

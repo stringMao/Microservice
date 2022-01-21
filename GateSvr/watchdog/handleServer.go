@@ -7,6 +7,7 @@ import (
 	"Common/msg"
 	"Common/proto/base"
 	"Common/try"
+	"GateSvr/agent"
 	"GateSvr/config"
 	"GateSvr/core/send"
 	"GateSvr/logic"
@@ -51,15 +52,15 @@ func handleServerConnection(conn net.Conn) {
 
 	defer agentmanager.RemoveAgentServer(logindata.Tid, logindata.Sid)
 	//身份验证成功,加入管理队列
-	agent := agentmanager.AddAgentServer(logindata.Tid, logindata.Sid, conn)
+	agenter := agentmanager.AddAgentServer(logindata.Tid, logindata.Sid, conn)
 
 	loginResult := &base.LoginResult{}
-	if agent == nil { //注册失败
+	if agenter == nil { //注册失败
 		loginResult.Code = 1
 		ploginResult, _ := proto.Marshal(loginResult)
-		conn.Write(send.CreateMsgToSvr(msg.GateSvr_SvrLoginResult, ploginResult))
+		conn.Write(send.CreateMsgToSvr(msg.Gate_SS_SvrLoginResult, ploginResult))
 
-		log.Infof("服务器登入失败，ServerID[%d] TID[%d] SID[%d]", agent.Serverid, logindata.Tid, logindata.Sid)
+		log.Infof("服务器登入失败，ServerID[%d] TID[%d] SID[%d]", agenter.Serverid, logindata.Tid, logindata.Sid)
 		return
 	} else {
 		//conn.Write(msg.CreateErrSvrMsgData(0, msg.Err_Nomoal, "服务与网关服注册成功"))
@@ -68,11 +69,12 @@ func handleServerConnection(conn net.Conn) {
 		loginResult.Sid = uint32(config.App.SID)
 		loginResult.Name = constant.GetServerIDName(config.App.TID, config.App.SID)
 		ploginResult, _ := proto.Marshal(loginResult)
-		conn.Write(send.CreateMsgToSvr(msg.GateSvr_SvrLoginResult, ploginResult))
+		conn.Write(send.CreateMsgToSvr(msg.Gate_SS_SvrLoginResult, ploginResult))
 
-		log.Infof("服务器登入成功，ServerID[%d] TID[%d] SID[%d]", agent.Serverid, logindata.Tid, logindata.Sid)
+		log.Infof("服务器登入成功，ServerID[%d] TID[%d] SID[%d]", agenter.Serverid, logindata.Tid, logindata.Sid)
 	}
 
+	signhead := &msg.HeadSign{}
 	for {
 		//开始通讯
 		conn.SetReadDeadline(time.Now().Add(time.Second * 10)) //借此检测心跳包
@@ -95,17 +97,25 @@ func handleServerConnection(conn net.Conn) {
 		//  [uint8](后面8表示说明，0:后面是serverid 1:后面是userid)
 		//  [uint64](userid(8字节)或者0(4字节)+sid(2字节)+tid(2字节))
 		//  [uint32,uint32,uint32](mainid+sonid+len)+msg
-		signhead := &msg.HeadSign{}
 		signhead.Decode(buffer)
+
+		//拷贝消息切片
+		buf := make([]byte, n)
+		copy(buf, buffer[:n])
 
 		switch signhead.SignType {
 		case msg.Sign_serverid: //后8位是serverid
 			//serverid := binary.LittleEndian.Uint64(buffer[1:9])
-			buf := msg.AddSignHead(msg.Sign_serverid, agent.Serverid, buffer[msg.GetSignHeadLength():n])
+			if signhead.Tid == constant.TID_GateSvr {
+				HandleServerMessage(agenter, buf)
+			} else if signhead.Tid != 0 && signhead.Sid != 0 {
+				msg.ChangeSignHead(msg.Sign_serverid, agenter.Serverid, buf)
 
-			if !agentmanager.TransferToServer(signhead.SignId, buf) {
-				agent.SendData(msg.CreateErrorMsg(msg.Err_MsgSendFail_ServerNoExist))
-				break
+				if !agentmanager.TransferToServer(signhead.SignId, buf) {
+					agenter.SendData(msg.CreateErrorMsg(msg.Err_MsgSendFail_ServerNoExist))
+				}
+			} else if signhead.Tid != 0 && signhead.Sid == 0 {
+				//查找给 该玩家分配的服务器是哪一台，然后转发过去
 			}
 		case msg.Sign_userid: //后8位是userid
 			//消息转发给客户端
@@ -116,5 +126,42 @@ func handleServerConnection(conn net.Conn) {
 			return
 		}
 
+	}
+}
+
+func HandleServerMessage(p *agent.AgentServer, data []byte) {
+	head := msg.GetHead(data)
+
+	if head.MainID != msg.MID_Gate {
+		return
+	}
+
+	switch head.SonID {
+	case msg.Gate_SS_ClientJionResult: //用户加入业务服务器的结果返回
+		jionResult := &base.NotifyJionServerResult{}
+		if err := proto.Unmarshal(data[msg.GetHeadLength():], jionResult); err != nil {
+			//协议解析错误
+			return
+		}
+
+		if jionResult.Codeid != 0 {
+			//加入失败
+			agentmanager.TransferToClient(jionResult.Userid, send.CreateMsgToClient(msg.Gate_SC_ClientJionResult,
+				makeToClientJionServerResult(int(jionResult.Codeid), msg.EncodeServerID(p.Tid, 0))))
+			return
+		}
+		cAgenter := agentmanager.GetAgentClient(jionResult.Userid)
+		if cAgenter == nil {
+			return
+		}
+		//保存jion结果
+		cAgenter.SetServerId(p.Tid, p.Serverid)
+
+		//成功通知客户端
+		agentmanager.TransferToClient(jionResult.Userid, send.CreateMsgToClient(msg.Gate_SC_ClientJionResult,
+			makeToClientJionServerResult(int(jionResult.Codeid), p.Serverid)))
+
+	default:
+		return
 	}
 }

@@ -6,15 +6,23 @@ import (
 	"math"
 )
 
+//协议头长度
+var size_head int = 0
+
+//标记头长度
+var size_sign int = 0
+
+func init() {
+	size_head = binary.Size(HeadProto{})
+	size_sign = binary.Size(HeadSign{})
+}
+
 //协议头
 type HeadProto struct {
 	MainID uint32
 	SonID  uint32
 	Len    uint32
 }
-
-//协议头长度
-var size_head int = binary.Size(HeadProto{})
 
 func (h *HeadProto) GetHeadLen() int {
 	return size_head
@@ -60,9 +68,6 @@ type HeadSign struct {
 	Tid      uint32
 	Sid      uint32
 }
-
-//标记头长度
-var size_sign int = binary.Size(HeadSign{})
 
 //“标记头” 编码
 func (h *HeadSign) Encode() []byte {
@@ -173,15 +178,63 @@ func AddSignHead(signtype uint8, id uint64, data []byte) []byte {
 	return append(CreateSignHead(signtype, id), data...)
 }
 
-//完整的消息结构
-type WholeProtoStruct struct {
-	Sign HeadSign
-	Head HeadProto
-	Data []byte
+//修改“标记头”字段
+func ChangeSignHead(signtype uint8, id uint64, data []byte) {
+	data[0] = byte(signtype)
+	data[1] = byte(id)
+	data[2] = byte(id >> 8)
+	data[3] = byte(id >> 16)
+	data[4] = byte(id >> 24)
+	data[5] = byte(id >> 32)
+	data[6] = byte(id >> 40)
+	data[7] = byte(id >> 48)
+	data[8] = byte(id >> 56)
 }
 
+//完整的消息结构
+// type WholeProtoStruct struct {
+// 	Sign HeadSign
+// 	Head HeadProto
+// 	Data []byte
+// }
+
 //标准的协议结构
-type ProtoStruct struct {
-	Head HeadProto
-	Data []byte
+// type ProtoStruct struct {
+// 	Head HeadProto
+// 	Data []byte
+// }
+
+//获得”标记头“
+func GetSign(b []byte) *HeadSign {
+	h := &HeadSign{}
+	h.SignType = b[0]
+	// if h.SignType != Sign_serverid && h.SignType != Sign_userid {
+	// 	return nil
+	// }
+	h.SignId = binary.LittleEndian.Uint64(b[1:size_sign])
+	if h.SignType == Sign_serverid {
+		h.Tid, h.Sid = DecodeServerID(h.SignId)
+	}
+	return h
+}
+
+//从完整包里获得”消息头“
+func GetHead(b []byte) *HeadProto {
+	idex := size_sign
+	h := &HeadProto{
+		MainID: binary.LittleEndian.Uint32(b[idex : idex+4]),
+		SonID:  binary.LittleEndian.Uint32(b[idex+4 : idex+8]),
+		Len:    binary.LittleEndian.Uint32(b[idex+8 : idex+12]),
+	}
+	return h
+}
+
+//从只有“消息头和消息体”的包中获得”消息头“
+func GetHeadOfProto(b []byte) *HeadProto {
+	h := &HeadProto{
+		MainID: binary.LittleEndian.Uint32(b[:+4]),
+		SonID:  binary.LittleEndian.Uint32(b[+4:+8]),
+		Len:    binary.LittleEndian.Uint32(b[+8:+12]),
+	}
+	return h
 }

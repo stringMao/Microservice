@@ -61,9 +61,3 @@ func ConnectGateSvrs() {
 		time.Sleep(10 * time.Second)
 	}
 }
-
-func HandleErr(serverid uint64, codeid int) {
-	if codeid == 1 { //断线
-		kernel.GetManagerSvrs().DeleteGateSvr(serverid)
-	}
-}

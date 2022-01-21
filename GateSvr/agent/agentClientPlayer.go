@@ -5,7 +5,7 @@ import (
 )
 
 //加载玩家数据
-func (a *agentClient) Init() bool {
+func (a *AgentClient) Init() bool {
 	if a.Player == nil {
 		a.Player = player.NewPlayer(a.Userid)
 	}
@@ -18,7 +18,7 @@ func (a *agentClient) Init() bool {
 }
 
 //
-func (a *agentClient) Save() {
+func (a *AgentClient) Save() {
 	if a.Player == nil {
 		return
 	}
@@ -28,6 +28,6 @@ func (a *agentClient) Save() {
 //
 
 //积分变更
-func (a *agentClient) UpdateScore(score int) {
+func (a *AgentClient) UpdateScore(score int) {
 	a.Player.CashData.UpdateScore(score)
 }

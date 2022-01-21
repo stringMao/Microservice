@@ -2,11 +2,14 @@ package watchdog
 
 //客户端连接的消息处理
 import (
+	"Common/constant"
 	"Common/log"
 	"Common/msg"
 	"Common/proto/base"
 	"Common/proto/gatesvrproto"
 	"Common/try"
+	"GateSvr/agent"
+	"GateSvr/core/send"
 	"GateSvr/logic"
 	"net"
 	"time"
@@ -54,25 +57,25 @@ func handleClientConnection(conn net.Conn) {
 	}
 
 	//身份验证成功,加入管理队列
+	agenter := agentmanager.AddAgentClient(logindata.Userid, conn)
 	defer agentmanager.RemoveAgentClient(logindata.Userid)
-	agent := agentmanager.AddAgentClient(logindata.Userid, conn)
 
 	//加载个人数据
-	if !agent.Init() {
-		agent.SendData(msg.CreateErrorMsg(msg.Err_Login_InitDataFail))
+	if !agenter.Init() {
+		agenter.SendData(msg.CreateErrorMsg(msg.Err_Login_InitDataFail))
 		return
 	} else {
 		//发送连接成功消息
 		tPro := &gatesvrproto.PlayerInfo{
-			NickName: agent.Player.BaseData.NickName,
-			Avatar:   agent.Player.BaseData.Avatar,
-			Gender:   int32(agent.Player.BaseData.Age),
-			Age:      int32(agent.Player.BaseData.Age),
-			Score:    agent.Player.CashData.Score,
-			Gold:     agent.Player.CashData.Gold,
+			NickName: agenter.Player.BaseData.NickName,
+			Avatar:   agenter.Player.BaseData.Avatar,
+			Gender:   int32(agenter.Player.BaseData.Age),
+			Age:      int32(agenter.Player.BaseData.Age),
+			Score:    agenter.Player.CashData.Score,
+			Gold:     agenter.Player.CashData.Gold,
 		}
 		dPro, _ := proto.Marshal(tPro)
-		agent.SendData(msg.CreateWholeProtoData(msg.MID_Gate, msg.Gate_SendPlayerData, dPro))
+		agenter.SendData(msg.CreateWholeProtoData(msg.MID_Gate, msg.Gate_SC_SendPlayerData, dPro))
 
 		log.Debugf("客户端登入成功 Userid[%d]", logindata.Userid)
 	}
@@ -103,30 +106,28 @@ func handleClientConnection(conn net.Conn) {
 		//  [uint32,uint32,uint32](mainid+sonid+len)+msg
 		signhead.Decode(buffer)
 
+		//拷贝消息切片
+		buf := make([]byte, readLength)
+		copy(buf, buffer[:readLength])
+
 		switch signhead.SignType {
 		case msg.Sign_serverid: //后8位是serverid
-			//修改消息
-			buf := msg.AddSignHead(msg.Sign_userid, logindata.Userid, buffer[msg.GetSignHeadLength():readLength])
-
 			//serverid := binary.LittleEndian.Uint64(buffer[1:9])
-			if signhead.Tid == 0 { //发给本服务器
-				agent.SendData(msg.CreateErrorMsg(99))
-				break
+			if signhead.Tid == constant.TID_GateSvr { //发给本服务器
+				HandleClientMessage(agenter, buf)
 			} else if signhead.Tid != 0 && signhead.Sid == 0 {
-				serverid := agent.GetServerId(signhead.Tid)
+				serverid := agenter.GetServerId(signhead.Tid)
 				if serverid == 0 {
-					serverid = agentmanager.AllocSvr(signhead.Tid)
-					if serverid == 0 {
-						//服务器找不到
-						agent.SendData(msg.CreateErrorMsg(msg.Err_ServerNoFind))
-						break
-					}
-					agent.SetServerId(signhead.Tid, serverid)
+					//未加入该服务器
+					agenter.SendData(msg.CreateErrorMsg(msg.Err_ServerNoFind))
+					break
 				}
+				//修改消息
+				msg.ChangeSignHead(msg.Sign_userid, logindata.Userid, buf)
 				if !agentmanager.TransferToServer(serverid, buf) {
 					//发送失败
 					//切换服务，会有一个号登入多个服的可能，建议断线重登
-					agent.SendData(msg.CreateErrorMsg(msg.Err_MsgSendFail_ServerNoExist))
+					agenter.SendData(msg.CreateErrorMsg(msg.Err_MsgSendFail_ServerNoExist))
 					return
 				}
 			} else if signhead.Tid != 0 && signhead.Sid != 0 {
@@ -144,4 +145,57 @@ func handleClientConnection(conn net.Conn) {
 		}
 
 	}
+}
+
+func HandleClientMessage(p *agent.AgentClient, data []byte) {
+	head := msg.GetHead(data)
+
+	if head.MainID != msg.MID_Gate {
+		return
+	}
+
+	switch head.SonID {
+	case msg.Gate_CS_JionServerReq: //请求加入某个业务服务器
+		loginreq := &base.ClientJionServerReq{}
+		err := proto.Unmarshal(data[msg.GetHeadLength():], loginreq)
+		if err != nil {
+			return
+		}
+		if loginreq.Tid == constant.TID_GateSvr {
+			return
+		}
+
+		if s := p.GetServerId(loginreq.Tid); s != 0 {
+			//已经加入该type的服务器
+			p.SendData(send.CreateMsgToClient(msg.Gate_SC_ClientJionResult,
+				makeToClientJionServerResult(2, s)))
+			return
+		}
+		serverid := agentmanager.AllocSvr(loginreq.Tid)
+		if serverid == 0 {
+			//服务器找不到
+			p.SendData(send.CreateMsgToClient(msg.Gate_SC_ClientJionResult,
+				makeToClientJionServerResult(1, msg.EncodeServerID(loginreq.Tid, 0))))
+			return
+		}
+		//转发加入请求给指定服务器
+		tPro := &base.NotifyJionServerReq{Userid: p.Userid}
+		dPro, _ := proto.Marshal(tPro)
+		agentmanager.TransferToServer(serverid, send.CreateMsgToSvr(msg.Gate_SS_ClientJionReq, dPro))
+
+	default:
+		return
+	}
+}
+
+//协议体构建============================================================
+func makeToClientJionServerResult(codeid int, serverid uint64) []byte {
+	pjionResult := &base.ToClientJionServerResult{
+		Codeid:   int32(codeid), //0成功 1服务器找不到 2重复加入
+		Serverid: serverid,
+	}
+
+	djionResult, _ := proto.Marshal(pjionResult)
+
+	return djionResult
 }

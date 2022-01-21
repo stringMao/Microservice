@@ -14,11 +14,6 @@ const (
 	Test_1 uint32 = 1
 )
 
-//MID_Gate 网关服的子命令
-const (
-	Gate_SendPlayerData uint32 = 1 //下发玩家信息
-)
-
 const (
 	Hall_TestMsg uint32 = 1 //下发玩家信息
 )

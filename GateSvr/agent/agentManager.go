@@ -3,10 +3,13 @@ package agent
 import (
 	"Common/log"
 	"Common/msg"
+	"Common/proto/base"
 	"math/rand"
 	"net"
 	"sync"
 	"time"
+
+	"google.golang.org/protobuf/proto"
 )
 
 //=============
@@ -41,25 +44,25 @@ func (m SvrListMap) RandOneValue(key uint32) uint32 {
 
 //=======================
 
-type ServerObj map[uint16]*agentServer //uint16=sid
+type ServerObj map[uint16]*AgentServer //uint16=sid
 
 //var m_conManagerMap map[int64]agentManager.Agent = make(map[int64]agentManager.Agent, 1)
 type AgentManager struct {
-	AgentClients map[uint64]*agentClient //客户端列表
+	AgentClients map[uint64]*AgentClient //客户端列表
 	rwClientLock *sync.RWMutex
 
 	serverList   SvrListMap //tid对应的sid列表
-	AgentServers map[uint64]*agentServer
+	AgentServers map[uint64]*AgentServer
 	rwSvrlock    *sync.RWMutex //服务列表的读写锁
 
 }
 
 func NewAgentManager() *AgentManager {
 	return &AgentManager{
-		AgentClients: make(map[uint64]*agentClient, 1),
+		AgentClients: make(map[uint64]*AgentClient, 1),
 		rwClientLock: new(sync.RWMutex),
 		serverList:   make(SvrListMap, 10),
-		AgentServers: make(map[uint64]*agentServer, 100),
+		AgentServers: make(map[uint64]*AgentServer, 100),
 		rwSvrlock:    new(sync.RWMutex),
 	}
 }
@@ -88,7 +91,7 @@ func (m *AgentManager) ReplaceClient(userid uint64) bool {
 }
 
 //添加一个客户端代理对象
-func (m *AgentManager) AddAgentClient(userid uint64, c net.Conn) *agentClient {
+func (m *AgentManager) AddAgentClient(userid uint64, c net.Conn) *AgentClient {
 	//========================
 	a := NewAgentClient(userid, c)
 
@@ -106,12 +109,37 @@ func (m *AgentManager) RemoveAgentClient(userid uint64) {
 	agent, ok := m.AgentClients[userid]
 	m.rwClientLock.RUnlock()
 	if ok {
+		//先通知业务服务器该用户离线
+		m.NoticeOfflineToSvr(userid, agent.GetAllSvrList())
 		//先关闭代理对象
 		agent.Close()
 		//再清理队列里的对象指针(确保被清理的对象已经完成内存保存)
 		m.rwClientLock.Lock()
 		delete(m.AgentClients, userid)
 		m.rwClientLock.Unlock()
+	}
+}
+
+func (m *AgentManager) GetAgentClient(userid uint64) *AgentClient {
+	m.rwClientLock.RLock()
+	defer m.rwClientLock.RUnlock()
+	if agenter, ok := m.AgentClients[userid]; ok {
+		return agenter
+	}
+	return nil
+}
+
+//给该用户连接的所有业务服务器，通知用户离线
+func (m *AgentManager) NoticeOfflineToSvr(userid uint64, serverlist []uint64) {
+	tPro := &base.ClientOffline{
+		Userid: userid,
+		Codeid: 1,
+	}
+	dPro, _ := proto.Marshal(tPro)
+	tempmsg := msg.CreateWholeProtoData(msg.MID_Gate, msg.Gate_SS_ClientOffline, dPro)
+
+	for _, v := range serverlist {
+		m.TransferToServer(v, tempmsg)
 	}
 }
 
@@ -129,7 +157,7 @@ func (m *AgentManager) ReplaceServer(tid, sid uint32) bool {
 }
 
 //服务器注册
-func (m *AgentManager) AddAgentServer(tid, sid uint32, c net.Conn) *agentServer {
+func (m *AgentManager) AddAgentServer(tid, sid uint32, c net.Conn) *AgentServer {
 	s := NewAgentServer(tid, sid, c)
 	m.rwSvrlock.Lock()
 	defer m.rwSvrlock.Unlock()

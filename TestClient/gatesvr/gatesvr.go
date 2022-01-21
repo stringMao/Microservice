@@ -133,7 +133,7 @@ func protoEncodePrint(buf []byte, n int) {
 		case msg.MID_Hall:
 		case msg.MID_Gate:
 			switch head.SonID {
-			case msg.Gate_SendPlayerData:
+			case msg.Gate_SC_SendPlayerData:
 				msgstr := &gatesvrproto.PlayerInfo{}
 				err := proto.Unmarshal(buf[head.GetHeadLen():n], msgstr)
 				if err != nil {
