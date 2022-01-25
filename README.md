@@ -8,9 +8,10 @@
     - [安装 Redis](#安装-redis)
     - [安装 Consul](#安装-consul)
     - [安装 Microservice](#安装-microservice)
+  - [配置](#配置)
   - [协议结构](#协议结构)
-  - [to server msg](#to-server-msg)
-  - [to client msg](#to-client-msg)
+    - [to server msg](#to-server-msg)
+    - [to client msg](#to-client-msg)
   
 
 
@@ -31,11 +32,13 @@
 ## 安装
 
 ### 安装 Mysql
- [mysql安装教程](https://www.runoob.com/mysql/mysql-install.html)
+ - [mysql安装教程](https://www.runoob.com/mysql/mysql-install.html)
+
+ - 导入脚本
 ### 安装 Redis
- [redis安装教程](https://www.runoob.com/redis/redis-install.html)
+ - [redis安装教程](https://www.runoob.com/redis/redis-install.html)
 ### 安装 Consul
-[consul下载](https://www.consul.io/downloads.html )
+- [consul下载](https://www.consul.io/downloads.html )
 ### 安装 Microservice
 
 ```
@@ -55,9 +58,53 @@ go build
 
 ```
 
+## 配置
+每个服务器启动前，同级目录下都需要配置app.ini。例如以下是GateSvr的配置模板
+
+```
+[log]
+level = debug
+[webmanager]
+port =8092
+# 服务发现consul的地址
+consuladdr = 127.0.0.1:8500
+
+
+[server]
+#该类型服务下的唯一ID
+sid = 1
+
+
+[business]
+#客户端连接监听端口
+clientPort=8090
+#服务器连接的监听端口
+serverPort=8091
+
+
+[redis]
+host = 127.0.0.1
+port = 6379
+username = root
+password = ***
+database=1
+maxopenconns = 20
+maxidleconns=5
+
+[mysql]
+host = 127.0.0.1
+port = 3306
+username = ###
+password = ***
+dbname = player
+maxopenconns = 100
+maxidleconns=10
+```
+
 ## 协议结构
-## to server msg
+### to server msg
 ![RUNOOB 图标](https://github.com/stringMao/SrcRepository/blob/main/%E5%BE%AE%E6%9C%8D%E5%8A%A1/toServerMsg.jpg)
 
-## to client msg
+### to client msg
 ![RUNOOB 图标](https://github.com/stringMao/SrcRepository/blob/main/%E5%BE%AE%E6%9C%8D%E5%8A%A1/toClientMsg.jpg)
+
