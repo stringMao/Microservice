@@ -128,6 +128,8 @@ func OnEventSvrMessage(serverid uint64, mainid, sonid uint32, len uint32, data [
 			DoLoginGateSvr(serverid, len, data)
 		case msg.Gate_SS_ClientJionReq: //有用户请求加入本服
 			DoClientJionReq(serverid, len, data)
+		case msg.Gate_SS_ClientLeaveReq:
+			DoClientLeaveReq(serverid, len, data)
 		case msg.Gate_SS_ClientOffline: //用户离线
 
 		default:
@@ -233,6 +235,23 @@ func DoClientJionReq(id uint64, len uint32, data []byte) bool {
 	}
 	dPro, _ := proto.Marshal(rSt)
 	kernel.GetManagerSvrs().SendData(id, send.CreateMsgToServerID(id, msg.MID_Gate, msg.Gate_SS_ClientJionResult, dPro))
+
+	return true
+}
+
+func DoClientLeaveReq(id uint64, len uint32, data []byte) bool {
+	pData := &base.NotifyLeaveServerReq{}
+	if proto.Unmarshal(data[:len], pData) != nil {
+		fmt.Println("DoClientJionReq 协议解析失败:")
+		return false
+	}
+
+	rSt := &base.NotifyLeaveServerResult{
+		Userid: pData.Userid,
+		Codeid: 0,
+	}
+	dPro, _ := proto.Marshal(rSt)
+	kernel.GetManagerSvrs().SendData(id, send.CreateMsgToServerID(id, msg.MID_Gate, msg.Gate_SS_ClientLeaveResult, dPro))
 
 	return true
 }

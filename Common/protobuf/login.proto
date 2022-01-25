@@ -39,12 +39,28 @@ message  ToClientJionServerResult{
     int32   codeid=1;   //结果码 0成功 
     uint64  serverid=2;  //成功后，下发分配的具体服务器id
 }
+message ClientLeaveServerReq{
+    uint32  tid=1;
+}
+
+message  ToClientLeaveServerResult{
+    // /uint32  tid=1;
+    int32   codeid=1;   //结果码 0成功 
+    uint64  serverid=2;  //成功后，下发分配的具体服务器id
+}
 
 //gate通知服务器用户想要登入你
 message NotifyJionServerReq{
     uint64 userid=1;
 }
 message NotifyJionServerResult{
+    uint64  userid=1;
+    int32   codeid=2;   //结果码 0成功
+}
+message NotifyLeaveServerReq{
+    uint64 userid=1;
+}
+message NotifyLeaveServerResult{
     uint64  userid=1;
     int32   codeid=2;   //结果码 0成功
 }

@@ -325,6 +325,109 @@ func (x *ToClientJionServerResult) GetServerid() uint64 {
 	return 0
 }
 
+type ClientLeaveServerReq struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Tid uint32 `protobuf:"varint,1,opt,name=tid,proto3" json:"tid,omitempty"`
+}
+
+func (x *ClientLeaveServerReq) Reset() {
+	*x = ClientLeaveServerReq{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_login_proto_msgTypes[5]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ClientLeaveServerReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ClientLeaveServerReq) ProtoMessage() {}
+
+func (x *ClientLeaveServerReq) ProtoReflect() protoreflect.Message {
+	mi := &file_login_proto_msgTypes[5]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ClientLeaveServerReq.ProtoReflect.Descriptor instead.
+func (*ClientLeaveServerReq) Descriptor() ([]byte, []int) {
+	return file_login_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *ClientLeaveServerReq) GetTid() uint32 {
+	if x != nil {
+		return x.Tid
+	}
+	return 0
+}
+
+type ToClientLeaveServerResult struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	// /uint32  tid=1;
+	Codeid   int32  `protobuf:"varint,1,opt,name=codeid,proto3" json:"codeid,omitempty"`     //结果码 0成功
+	Serverid uint64 `protobuf:"varint,2,opt,name=serverid,proto3" json:"serverid,omitempty"` //成功后，下发分配的具体服务器id
+}
+
+func (x *ToClientLeaveServerResult) Reset() {
+	*x = ToClientLeaveServerResult{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_login_proto_msgTypes[6]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ToClientLeaveServerResult) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ToClientLeaveServerResult) ProtoMessage() {}
+
+func (x *ToClientLeaveServerResult) ProtoReflect() protoreflect.Message {
+	mi := &file_login_proto_msgTypes[6]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ToClientLeaveServerResult.ProtoReflect.Descriptor instead.
+func (*ToClientLeaveServerResult) Descriptor() ([]byte, []int) {
+	return file_login_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *ToClientLeaveServerResult) GetCodeid() int32 {
+	if x != nil {
+		return x.Codeid
+	}
+	return 0
+}
+
+func (x *ToClientLeaveServerResult) GetServerid() uint64 {
+	if x != nil {
+		return x.Serverid
+	}
+	return 0
+}
+
 //gate通知服务器用户想要登入你
 type NotifyJionServerReq struct {
 	state         protoimpl.MessageState
@@ -337,7 +440,7 @@ type NotifyJionServerReq struct {
 func (x *NotifyJionServerReq) Reset() {
 	*x = NotifyJionServerReq{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_login_proto_msgTypes[5]
+		mi := &file_login_proto_msgTypes[7]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -350,7 +453,7 @@ func (x *NotifyJionServerReq) String() string {
 func (*NotifyJionServerReq) ProtoMessage() {}
 
 func (x *NotifyJionServerReq) ProtoReflect() protoreflect.Message {
-	mi := &file_login_proto_msgTypes[5]
+	mi := &file_login_proto_msgTypes[7]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -363,7 +466,7 @@ func (x *NotifyJionServerReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NotifyJionServerReq.ProtoReflect.Descriptor instead.
 func (*NotifyJionServerReq) Descriptor() ([]byte, []int) {
-	return file_login_proto_rawDescGZIP(), []int{5}
+	return file_login_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *NotifyJionServerReq) GetUserid() uint64 {
@@ -385,7 +488,7 @@ type NotifyJionServerResult struct {
 func (x *NotifyJionServerResult) Reset() {
 	*x = NotifyJionServerResult{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_login_proto_msgTypes[6]
+		mi := &file_login_proto_msgTypes[8]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -398,7 +501,7 @@ func (x *NotifyJionServerResult) String() string {
 func (*NotifyJionServerResult) ProtoMessage() {}
 
 func (x *NotifyJionServerResult) ProtoReflect() protoreflect.Message {
-	mi := &file_login_proto_msgTypes[6]
+	mi := &file_login_proto_msgTypes[8]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -411,7 +514,7 @@ func (x *NotifyJionServerResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NotifyJionServerResult.ProtoReflect.Descriptor instead.
 func (*NotifyJionServerResult) Descriptor() ([]byte, []int) {
-	return file_login_proto_rawDescGZIP(), []int{6}
+	return file_login_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *NotifyJionServerResult) GetUserid() uint64 {
@@ -422,6 +525,108 @@ func (x *NotifyJionServerResult) GetUserid() uint64 {
 }
 
 func (x *NotifyJionServerResult) GetCodeid() int32 {
+	if x != nil {
+		return x.Codeid
+	}
+	return 0
+}
+
+type NotifyLeaveServerReq struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Userid uint64 `protobuf:"varint,1,opt,name=userid,proto3" json:"userid,omitempty"`
+}
+
+func (x *NotifyLeaveServerReq) Reset() {
+	*x = NotifyLeaveServerReq{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_login_proto_msgTypes[9]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *NotifyLeaveServerReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*NotifyLeaveServerReq) ProtoMessage() {}
+
+func (x *NotifyLeaveServerReq) ProtoReflect() protoreflect.Message {
+	mi := &file_login_proto_msgTypes[9]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use NotifyLeaveServerReq.ProtoReflect.Descriptor instead.
+func (*NotifyLeaveServerReq) Descriptor() ([]byte, []int) {
+	return file_login_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *NotifyLeaveServerReq) GetUserid() uint64 {
+	if x != nil {
+		return x.Userid
+	}
+	return 0
+}
+
+type NotifyLeaveServerResult struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Userid uint64 `protobuf:"varint,1,opt,name=userid,proto3" json:"userid,omitempty"`
+	Codeid int32  `protobuf:"varint,2,opt,name=codeid,proto3" json:"codeid,omitempty"` //结果码 0成功
+}
+
+func (x *NotifyLeaveServerResult) Reset() {
+	*x = NotifyLeaveServerResult{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_login_proto_msgTypes[10]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *NotifyLeaveServerResult) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*NotifyLeaveServerResult) ProtoMessage() {}
+
+func (x *NotifyLeaveServerResult) ProtoReflect() protoreflect.Message {
+	mi := &file_login_proto_msgTypes[10]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use NotifyLeaveServerResult.ProtoReflect.Descriptor instead.
+func (*NotifyLeaveServerResult) Descriptor() ([]byte, []int) {
+	return file_login_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *NotifyLeaveServerResult) GetUserid() uint64 {
+	if x != nil {
+		return x.Userid
+	}
+	return 0
+}
+
+func (x *NotifyLeaveServerResult) GetCodeid() int32 {
 	if x != nil {
 		return x.Codeid
 	}
@@ -441,7 +646,7 @@ type ClientOffline struct {
 func (x *ClientOffline) Reset() {
 	*x = ClientOffline{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_login_proto_msgTypes[7]
+		mi := &file_login_proto_msgTypes[11]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -454,7 +659,7 @@ func (x *ClientOffline) String() string {
 func (*ClientOffline) ProtoMessage() {}
 
 func (x *ClientOffline) ProtoReflect() protoreflect.Message {
-	mi := &file_login_proto_msgTypes[7]
+	mi := &file_login_proto_msgTypes[11]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -467,7 +672,7 @@ func (x *ClientOffline) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ClientOffline.ProtoReflect.Descriptor instead.
 func (*ClientOffline) Descriptor() ([]byte, []int) {
-	return file_login_proto_rawDescGZIP(), []int{7}
+	return file_login_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *ClientOffline) GetUserid() uint64 {
@@ -495,7 +700,7 @@ type TestMsg struct {
 func (x *TestMsg) Reset() {
 	*x = TestMsg{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_login_proto_msgTypes[8]
+		mi := &file_login_proto_msgTypes[12]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -508,7 +713,7 @@ func (x *TestMsg) String() string {
 func (*TestMsg) ProtoMessage() {}
 
 func (x *TestMsg) ProtoReflect() protoreflect.Message {
-	mi := &file_login_proto_msgTypes[8]
+	mi := &file_login_proto_msgTypes[12]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -521,7 +726,7 @@ func (x *TestMsg) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TestMsg.ProtoReflect.Descriptor instead.
 func (*TestMsg) Descriptor() ([]byte, []int) {
-	return file_login_proto_rawDescGZIP(), []int{8}
+	return file_login_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *TestMsg) GetTxt() string {
@@ -558,21 +763,37 @@ var file_login_proto_rawDesc = []byte{
 	0x74, 0x12, 0x16, 0x0a, 0x06, 0x63, 0x6f, 0x64, 0x65, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28,
 	0x05, 0x52, 0x06, 0x63, 0x6f, 0x64, 0x65, 0x69, 0x64, 0x12, 0x1a, 0x0a, 0x08, 0x73, 0x65, 0x72,
 	0x76, 0x65, 0x72, 0x69, 0x64, 0x18, 0x02, 0x20, 0x01, 0x28, 0x04, 0x52, 0x08, 0x73, 0x65, 0x72,
-	0x76, 0x65, 0x72, 0x69, 0x64, 0x22, 0x2d, 0x0a, 0x13, 0x4e, 0x6f, 0x74, 0x69, 0x66, 0x79, 0x4a,
-	0x69, 0x6f, 0x6e, 0x53, 0x65, 0x72, 0x76, 0x65, 0x72, 0x52, 0x65, 0x71, 0x12, 0x16, 0x0a, 0x06,
-	0x75, 0x73, 0x65, 0x72, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x04, 0x52, 0x06, 0x75, 0x73,
-	0x65, 0x72, 0x69, 0x64, 0x22, 0x48, 0x0a, 0x16, 0x4e, 0x6f, 0x74, 0x69, 0x66, 0x79, 0x4a, 0x69,
-	0x6f, 0x6e, 0x53, 0x65, 0x72, 0x76, 0x65, 0x72, 0x52, 0x65, 0x73, 0x75, 0x6c, 0x74, 0x12, 0x16,
-	0x0a, 0x06, 0x75, 0x73, 0x65, 0x72, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x04, 0x52, 0x06,
-	0x75, 0x73, 0x65, 0x72, 0x69, 0x64, 0x12, 0x16, 0x0a, 0x06, 0x63, 0x6f, 0x64, 0x65, 0x69, 0x64,
-	0x18, 0x02, 0x20, 0x01, 0x28, 0x05, 0x52, 0x06, 0x63, 0x6f, 0x64, 0x65, 0x69, 0x64, 0x22, 0x3f,
-	0x0a, 0x0d, 0x43, 0x6c, 0x69, 0x65, 0x6e, 0x74, 0x4f, 0x66, 0x66, 0x6c, 0x69, 0x6e, 0x65, 0x12,
-	0x16, 0x0a, 0x06, 0x75, 0x73, 0x65, 0x72, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x04, 0x52,
-	0x06, 0x75, 0x73, 0x65, 0x72, 0x69, 0x64, 0x12, 0x16, 0x0a, 0x06, 0x63, 0x6f, 0x64, 0x65, 0x69,
-	0x64, 0x18, 0x02, 0x20, 0x01, 0x28, 0x05, 0x52, 0x06, 0x63, 0x6f, 0x64, 0x65, 0x69, 0x64, 0x22,
-	0x1b, 0x0a, 0x07, 0x54, 0x65, 0x73, 0x74, 0x4d, 0x73, 0x67, 0x12, 0x10, 0x0a, 0x03, 0x74, 0x78,
-	0x74, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x74, 0x78, 0x74, 0x42, 0x07, 0x5a, 0x05,
-	0x62, 0x61, 0x73, 0x65, 0x2f, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x76, 0x65, 0x72, 0x69, 0x64, 0x22, 0x28, 0x0a, 0x14, 0x43, 0x6c, 0x69, 0x65, 0x6e, 0x74, 0x4c,
+	0x65, 0x61, 0x76, 0x65, 0x53, 0x65, 0x72, 0x76, 0x65, 0x72, 0x52, 0x65, 0x71, 0x12, 0x10, 0x0a,
+	0x03, 0x74, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0d, 0x52, 0x03, 0x74, 0x69, 0x64, 0x22,
+	0x4f, 0x0a, 0x19, 0x54, 0x6f, 0x43, 0x6c, 0x69, 0x65, 0x6e, 0x74, 0x4c, 0x65, 0x61, 0x76, 0x65,
+	0x53, 0x65, 0x72, 0x76, 0x65, 0x72, 0x52, 0x65, 0x73, 0x75, 0x6c, 0x74, 0x12, 0x16, 0x0a, 0x06,
+	0x63, 0x6f, 0x64, 0x65, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x05, 0x52, 0x06, 0x63, 0x6f,
+	0x64, 0x65, 0x69, 0x64, 0x12, 0x1a, 0x0a, 0x08, 0x73, 0x65, 0x72, 0x76, 0x65, 0x72, 0x69, 0x64,
+	0x18, 0x02, 0x20, 0x01, 0x28, 0x04, 0x52, 0x08, 0x73, 0x65, 0x72, 0x76, 0x65, 0x72, 0x69, 0x64,
+	0x22, 0x2d, 0x0a, 0x13, 0x4e, 0x6f, 0x74, 0x69, 0x66, 0x79, 0x4a, 0x69, 0x6f, 0x6e, 0x53, 0x65,
+	0x72, 0x76, 0x65, 0x72, 0x52, 0x65, 0x71, 0x12, 0x16, 0x0a, 0x06, 0x75, 0x73, 0x65, 0x72, 0x69,
+	0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x04, 0x52, 0x06, 0x75, 0x73, 0x65, 0x72, 0x69, 0x64, 0x22,
+	0x48, 0x0a, 0x16, 0x4e, 0x6f, 0x74, 0x69, 0x66, 0x79, 0x4a, 0x69, 0x6f, 0x6e, 0x53, 0x65, 0x72,
+	0x76, 0x65, 0x72, 0x52, 0x65, 0x73, 0x75, 0x6c, 0x74, 0x12, 0x16, 0x0a, 0x06, 0x75, 0x73, 0x65,
+	0x72, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x04, 0x52, 0x06, 0x75, 0x73, 0x65, 0x72, 0x69,
+	0x64, 0x12, 0x16, 0x0a, 0x06, 0x63, 0x6f, 0x64, 0x65, 0x69, 0x64, 0x18, 0x02, 0x20, 0x01, 0x28,
+	0x05, 0x52, 0x06, 0x63, 0x6f, 0x64, 0x65, 0x69, 0x64, 0x22, 0x2e, 0x0a, 0x14, 0x4e, 0x6f, 0x74,
+	0x69, 0x66, 0x79, 0x4c, 0x65, 0x61, 0x76, 0x65, 0x53, 0x65, 0x72, 0x76, 0x65, 0x72, 0x52, 0x65,
+	0x71, 0x12, 0x16, 0x0a, 0x06, 0x75, 0x73, 0x65, 0x72, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28,
+	0x04, 0x52, 0x06, 0x75, 0x73, 0x65, 0x72, 0x69, 0x64, 0x22, 0x49, 0x0a, 0x17, 0x4e, 0x6f, 0x74,
+	0x69, 0x66, 0x79, 0x4c, 0x65, 0x61, 0x76, 0x65, 0x53, 0x65, 0x72, 0x76, 0x65, 0x72, 0x52, 0x65,
+	0x73, 0x75, 0x6c, 0x74, 0x12, 0x16, 0x0a, 0x06, 0x75, 0x73, 0x65, 0x72, 0x69, 0x64, 0x18, 0x01,
+	0x20, 0x01, 0x28, 0x04, 0x52, 0x06, 0x75, 0x73, 0x65, 0x72, 0x69, 0x64, 0x12, 0x16, 0x0a, 0x06,
+	0x63, 0x6f, 0x64, 0x65, 0x69, 0x64, 0x18, 0x02, 0x20, 0x01, 0x28, 0x05, 0x52, 0x06, 0x63, 0x6f,
+	0x64, 0x65, 0x69, 0x64, 0x22, 0x3f, 0x0a, 0x0d, 0x43, 0x6c, 0x69, 0x65, 0x6e, 0x74, 0x4f, 0x66,
+	0x66, 0x6c, 0x69, 0x6e, 0x65, 0x12, 0x16, 0x0a, 0x06, 0x75, 0x73, 0x65, 0x72, 0x69, 0x64, 0x18,
+	0x01, 0x20, 0x01, 0x28, 0x04, 0x52, 0x06, 0x75, 0x73, 0x65, 0x72, 0x69, 0x64, 0x12, 0x16, 0x0a,
+	0x06, 0x63, 0x6f, 0x64, 0x65, 0x69, 0x64, 0x18, 0x02, 0x20, 0x01, 0x28, 0x05, 0x52, 0x06, 0x63,
+	0x6f, 0x64, 0x65, 0x69, 0x64, 0x22, 0x1b, 0x0a, 0x07, 0x54, 0x65, 0x73, 0x74, 0x4d, 0x73, 0x67,
+	0x12, 0x10, 0x0a, 0x03, 0x74, 0x78, 0x74, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x74,
+	0x78, 0x74, 0x42, 0x07, 0x5a, 0x05, 0x62, 0x61, 0x73, 0x65, 0x2f, 0x62, 0x06, 0x70, 0x72, 0x6f,
+	0x74, 0x6f, 0x33,
 }
 
 var (
@@ -587,17 +808,21 @@ func file_login_proto_rawDescGZIP() []byte {
 	return file_login_proto_rawDescData
 }
 
-var file_login_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_login_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
 var file_login_proto_goTypes = []interface{}{
-	(*ClientLogin)(nil),              // 0: base.ClientLogin
-	(*ServerLogin)(nil),              // 1: base.ServerLogin
-	(*LoginResult)(nil),              // 2: base.LoginResult
-	(*ClientJionServerReq)(nil),      // 3: base.ClientJionServerReq
-	(*ToClientJionServerResult)(nil), // 4: base.ToClientJionServerResult
-	(*NotifyJionServerReq)(nil),      // 5: base.NotifyJionServerReq
-	(*NotifyJionServerResult)(nil),   // 6: base.NotifyJionServerResult
-	(*ClientOffline)(nil),            // 7: base.ClientOffline
-	(*TestMsg)(nil),                  // 8: base.TestMsg
+	(*ClientLogin)(nil),               // 0: base.ClientLogin
+	(*ServerLogin)(nil),               // 1: base.ServerLogin
+	(*LoginResult)(nil),               // 2: base.LoginResult
+	(*ClientJionServerReq)(nil),       // 3: base.ClientJionServerReq
+	(*ToClientJionServerResult)(nil),  // 4: base.ToClientJionServerResult
+	(*ClientLeaveServerReq)(nil),      // 5: base.ClientLeaveServerReq
+	(*ToClientLeaveServerResult)(nil), // 6: base.ToClientLeaveServerResult
+	(*NotifyJionServerReq)(nil),       // 7: base.NotifyJionServerReq
+	(*NotifyJionServerResult)(nil),    // 8: base.NotifyJionServerResult
+	(*NotifyLeaveServerReq)(nil),      // 9: base.NotifyLeaveServerReq
+	(*NotifyLeaveServerResult)(nil),   // 10: base.NotifyLeaveServerResult
+	(*ClientOffline)(nil),             // 11: base.ClientOffline
+	(*TestMsg)(nil),                   // 12: base.TestMsg
 }
 var file_login_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
@@ -674,7 +899,7 @@ func file_login_proto_init() {
 			}
 		}
 		file_login_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*NotifyJionServerReq); i {
+			switch v := v.(*ClientLeaveServerReq); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -686,7 +911,7 @@ func file_login_proto_init() {
 			}
 		}
 		file_login_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*NotifyJionServerResult); i {
+			switch v := v.(*ToClientLeaveServerResult); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -698,7 +923,7 @@ func file_login_proto_init() {
 			}
 		}
 		file_login_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ClientOffline); i {
+			switch v := v.(*NotifyJionServerReq); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -710,6 +935,54 @@ func file_login_proto_init() {
 			}
 		}
 		file_login_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*NotifyJionServerResult); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_login_proto_msgTypes[9].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*NotifyLeaveServerReq); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_login_proto_msgTypes[10].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*NotifyLeaveServerResult); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_login_proto_msgTypes[11].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ClientOffline); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_login_proto_msgTypes[12].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*TestMsg); i {
 			case 0:
 				return &v.state
@@ -728,7 +1001,7 @@ func file_login_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_login_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   9,
+			NumMessages:   13,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

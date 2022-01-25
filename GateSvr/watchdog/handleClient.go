@@ -11,6 +11,7 @@ import (
 	"GateSvr/agent"
 	"GateSvr/core/send"
 	"GateSvr/logic"
+	"GateSvr/util/msgbody"
 	"net"
 	"time"
 
@@ -168,34 +169,45 @@ func HandleClientMessage(p *agent.AgentClient, data []byte) {
 		if s := p.GetServerId(loginreq.Tid); s != 0 {
 			//已经加入该type的服务器
 			p.SendData(send.CreateMsgToClient(msg.Gate_SC_ClientJionResult,
-				makeToClientJionServerResult(2, s)))
+				msgbody.MakeToClientJionServerResult(2, s)))
 			return
 		}
 		serverid := agentmanager.AllocSvr(loginreq.Tid)
 		if serverid == 0 {
 			//服务器找不到
 			p.SendData(send.CreateMsgToClient(msg.Gate_SC_ClientJionResult,
-				makeToClientJionServerResult(1, msg.EncodeServerID(loginreq.Tid, 0))))
+				msgbody.MakeToClientJionServerResult(1, msg.EncodeServerID(loginreq.Tid, 0))))
 			return
 		}
 		//转发加入请求给指定服务器
 		tPro := &base.NotifyJionServerReq{Userid: p.Userid}
 		dPro, _ := proto.Marshal(tPro)
 		agentmanager.TransferToServer(serverid, send.CreateMsgToSvr(msg.Gate_SS_ClientJionReq, dPro))
+	case msg.Gate_CS_LeaveServerReq: //请求离开某个业务服务器
+		leaveReq := &base.ClientLeaveServerReq{}
+		err := proto.Unmarshal(data[msg.GetHeadLength():], leaveReq)
+		if err != nil {
+			return
+		}
+		if leaveReq.Tid == constant.TID_GateSvr {
+			return
+		}
 
+		serverid := p.GetServerId(leaveReq.Tid)
+		if serverid == 0 {
+			//没有可离开的服务器
+			p.SendData(send.CreateMsgToClient(msg.Gate_SC_ClientLeaveResult,
+				msgbody.MakeToClientLeaveServerResult(1, serverid)))
+			return
+		}
+
+		//转发加入请求给指定服务器
+		tPro := &base.NotifyLeaveServerReq{Userid: p.Userid}
+		dPro, _ := proto.Marshal(tPro)
+		agentmanager.TransferToServer(serverid, send.CreateMsgToSvr(msg.Gate_SS_ClientLeaveReq, dPro))
 	default:
 		return
 	}
 }
 
 //协议体构建============================================================
-func makeToClientJionServerResult(codeid int, serverid uint64) []byte {
-	pjionResult := &base.ToClientJionServerResult{
-		Codeid:   int32(codeid), //0成功 1服务器找不到 2重复加入
-		Serverid: serverid,
-	}
-
-	djionResult, _ := proto.Marshal(pjionResult)
-
-	return djionResult
-}

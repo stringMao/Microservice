@@ -11,6 +11,7 @@ import (
 	"GateSvr/config"
 	"GateSvr/core/send"
 	"GateSvr/logic"
+	"GateSvr/util/msgbody"
 	"fmt"
 	"net"
 	"time"
@@ -147,7 +148,7 @@ func HandleServerMessage(p *agent.AgentServer, data []byte) {
 		if jionResult.Codeid != 0 {
 			//加入失败
 			agentmanager.TransferToClient(jionResult.Userid, send.CreateMsgToClient(msg.Gate_SC_ClientJionResult,
-				makeToClientJionServerResult(int(jionResult.Codeid), msg.EncodeServerID(p.Tid, 0))))
+				msgbody.MakeToClientJionServerResult(int(jionResult.Codeid), msg.EncodeServerID(p.Tid, 0))))
 			return
 		}
 		cAgenter := agentmanager.GetAgentClient(jionResult.Userid)
@@ -159,8 +160,30 @@ func HandleServerMessage(p *agent.AgentServer, data []byte) {
 
 		//成功通知客户端
 		agentmanager.TransferToClient(jionResult.Userid, send.CreateMsgToClient(msg.Gate_SC_ClientJionResult,
-			makeToClientJionServerResult(int(jionResult.Codeid), p.Serverid)))
+			msgbody.MakeToClientJionServerResult(int(jionResult.Codeid), p.Serverid)))
+	case msg.Gate_SS_ClientLeaveResult: //用户离开业务服务器结果
+		pData := &base.NotifyLeaveServerResult{}
+		if err := proto.Unmarshal(data[msg.GetHeadLength():], pData); err != nil {
+			//协议解析错误
+			return
+		}
 
+		if pData.Codeid != 0 {
+			//离开失败
+			agentmanager.TransferToClient(pData.Userid, send.CreateMsgToClient(msg.Gate_SC_ClientLeaveResult,
+				msgbody.MakeToClientLeaveServerResult(int(pData.Codeid), p.Serverid)))
+			return
+		}
+		cAgenter := agentmanager.GetAgentClient(pData.Userid)
+		if cAgenter == nil {
+			return
+		}
+		//保存leave结果
+		cAgenter.SetServerId(p.Tid, 0)
+
+		//成功通知客户端
+		agentmanager.TransferToClient(pData.Userid, send.CreateMsgToClient(msg.Gate_SC_ClientLeaveResult,
+			msgbody.MakeToClientJionServerResult(int(pData.Codeid), p.Serverid)))
 	default:
 		return
 	}
