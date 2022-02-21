@@ -209,5 +209,3 @@ func HandleClientMessage(p *agent.AgentClient, data []byte) {
 		return
 	}
 }
-
-//协议体构建============================================================
