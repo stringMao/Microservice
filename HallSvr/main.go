@@ -4,7 +4,6 @@ import (
 	"Common/constant"
 	"Common/log"
 	"Common/svrfind"
-	"Common/util"
 	"Common/webmanager"
 	"HallSvr/config"
 	"HallSvr/watchdog"
@@ -33,9 +32,9 @@ func main() {
 
 	//服务注册
 	if !registerToDiscovery() {
-		log.Fatalln("服务注册失败!")
+		log.Fatalln("consul注册失败!")
 	}
-	log.Infoln("服务注册成功!")
+	log.Infoln("consul注册成功!")
 
 	//
 	watchdog.StartWork()
@@ -46,7 +45,6 @@ func main() {
 
 //注册后台路由，启动路由监听
 func registerWebManagerRoute() bool {
-
 	//健康检查接口
 	consulCheckHealth := webmanager.RouterHelper{
 		Type:   webmanager.RouterType_consul,
@@ -67,7 +65,7 @@ func registerToDiscovery() bool {
 	svrfind.G_ServerRegister.SvrData.Name = constant.GetServerName(config.App.TID) //本服务的名字
 	svrfind.G_ServerRegister.SvrData.Port = config.App.Port
 	svrfind.G_ServerRegister.SvrData.Tags = []string{constant.GetServerTag(config.App.TID)}
-	svrfind.G_ServerRegister.SvrData.Address = util.GetLocalIP()
+	svrfind.G_ServerRegister.SvrData.Address = config.App.WebManagerIP
 
 	svrfind.G_ServerRegister.SvrData.Meta = make(map[string]string)
 	svrfind.G_ServerRegister.SvrData.Meta["TID"] = fmt.Sprintf("%d", config.App.TID)

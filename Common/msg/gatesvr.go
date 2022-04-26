@@ -4,7 +4,8 @@ package msg
 
 const (
 	//“网关服”与“其他服务器”的消息
-	Gate_SS_SvrLoginResult uint32 = iota + 10000 //服务器登入网关服的结果
+	SCS_SvrRegisterGateSvr uint32 = iota + 10000  //服务器像gate注册自己
+	Gate_SS_SvrLoginResult  //服务器登入网关服的结果
 	Gate_SS_ClientJionReq                        //用户加入请求
 	Gate_SS_ClientJionResult
 	Gate_SS_ClientLeaveReq    //用户离开请求

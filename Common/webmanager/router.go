@@ -80,10 +80,11 @@ func (agent *RouterAgent) RegisterRouter(r RouterHelper) bool {
 
 func (agent *RouterAgent) Start(webManagerPort int) bool {
 	go func() {
-		err := agent.Router.Run(fmt.Sprintf(":%d", webManagerPort))
+		err := agent.Router.Run(fmt.Sprintf("0.0.0.0:%d", webManagerPort))
 		if err != nil {
 			log.Errorln("webManager Run is err:", err)
 		}
 	}()
 	return true
 }
+

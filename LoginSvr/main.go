@@ -4,7 +4,6 @@ import (
 	"Common/constant"
 	"Common/log"
 	"Common/svrfind"
-	"Common/util"
 	"Common/webmanager"
 	"LoginSvr/config"
 	"LoginSvr/dbmanager"
@@ -12,6 +11,8 @@ import (
 	"LoginSvr/router"
 	"LoginSvr/svrbalanced"
 	"math/rand"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"time"
 
@@ -26,6 +27,9 @@ func init() {
 }
 
 func main() {
+	go func() {
+		log.Debugln(http.ListenAndServe(":8060", nil))
+	}()
 	//defer ServerEnd()
 	//mysql连接
 	dbmanager.ConnectDB_LoginSvr()
@@ -76,18 +80,18 @@ func registerWebManagerRoute() bool {
 	}
 	webmanager.G_WebManager.RegisterRouter(consulCheckHealth)
 
-	return webmanager.G_WebManager.Start(config.App.Base.WebManagerPort)
+	return webmanager.G_WebManager.Start(config.App.WebManagerPort)
 
 }
 
 //服务注册
 func registerToDiscovery() bool {
-	svrfind.G_ServerRegister.SvrData.ID = constant.GetServerIDName(config.App.Base.TID, config.App.Base.SID)
-	svrfind.G_ServerRegister.SvrData.Name = constant.GetServerName(config.App.Base.TID) //本服务的名字
+	svrfind.G_ServerRegister.SvrData.ID = constant.GetServerIDName(config.App.TID, config.App.SID)
+	svrfind.G_ServerRegister.SvrData.Name = constant.GetServerName(config.App.TID) //本服务的名字
 	svrfind.G_ServerRegister.SvrData.Port = config.App.Port
-	svrfind.G_ServerRegister.SvrData.Tags = []string{constant.GetServerTag(config.App.Base.TID)}
-	svrfind.G_ServerRegister.SvrData.Address = util.GetLocalIP()
+	svrfind.G_ServerRegister.SvrData.Tags = []string{constant.GetServerTag(config.App.TID)}
+	svrfind.G_ServerRegister.SvrData.Address = config.App.WebManagerIP
 	//svritem.SvrData.Check = svritem.CreateAgentServiceCheck(config.App.Base.WebManagerPort)
-	return svrfind.G_ServerRegister.Register(config.App.Base.ConsulAddr, config.App.Base.WebManagerPort)
+	return svrfind.G_ServerRegister.Register(config.App.ConsulAddr, config.App.WebManagerPort)
 
 }

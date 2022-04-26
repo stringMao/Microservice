@@ -19,6 +19,7 @@ func GetLocalIP() string {
 				return ipnet.IP.String()
 			}
 		}
+
 	}
 	return ""
 }

@@ -2,7 +2,7 @@ package setting
 
 import (
 	"Common/log"
-	"os"
+	"Common/util"
 	"path/filepath"
 	"reflect"
 
@@ -15,6 +15,7 @@ type BaseConfig struct {
 	SID            int `tag:"server" key:"sid"`
 	ServerID       uint64
 	LogLv          string `tag:"log" key:"level"` //日志等级
+	WebManagerIP   string `tag:"webmanager" key:"ip"`
 	WebManagerPort int    `tag:"webmanager" key:"port"`
 	ConsulAddr     string `tag:"webmanager" key:"consuladdr"`
 }
@@ -25,7 +26,8 @@ var appCfg *goconfig.ConfigFile
 func LoadAppConfig(v interface{}) {
 	var err error
 	//dirPath, err := filepath.Abs(filepath.Dir(os.Args[0])) //Getwd()
-	dirPath, err := os.Getwd()
+	dirPath, err :=util.GetCurrentPath()
+	//dirPath, err := os.Getwd()
 	if err != nil {
 		log.Logger.Fatal("[app.ini]路径未找到 err:", err)
 	}

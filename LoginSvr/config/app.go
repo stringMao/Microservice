@@ -10,7 +10,7 @@ import (
 //var AppCfg *goconfig.ConfigFile
 
 type ServerConfig struct {
-	Base       setting.BaseConfig `base:"true"`
+	setting.BaseConfig `base:"true"`
 	Port       int                `tag:"business" key:"port"`
 	DBHost     string             `tag:"mysql" key:"host"`
 	DBPort     int                `tag:"mysql" key:"port"`
@@ -45,11 +45,11 @@ var App *ServerConfig
 func init() {
 	App = new(ServerConfig)
 	setting.LoadAppConfig(App)
-	App.Base.TID = constant.TID_LoginSvr
-	App.Base.ServerID = constant.GetServerID(App.Base.TID, App.Base.SID)
+	App.TID = constant.TID_LoginSvr
+	App.ServerID = constant.GetServerID(App.TID, App.SID)
 
 	//日志等级设置
-	log.Setup(App.Base.LogLv)
+	log.Setup(App.LogLv)
 	//敏感词加载
 	LoadSensitiveWords()
 }

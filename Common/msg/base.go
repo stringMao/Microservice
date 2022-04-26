@@ -97,6 +97,17 @@ func (h *HeadSign) Decode(b []byte) error {
 	}
 	return nil
 }
+func ParseSign(h *HeadSign,b []byte)bool{
+	h.SignType = b[0]
+	if h.SignType != Sign_serverid && h.SignType != Sign_userid {
+		return false
+	}
+	h.SignId = binary.LittleEndian.Uint64(b[1:size_sign])
+	if h.SignType == Sign_serverid {
+		h.Tid, h.Sid = DecodeServerID(h.SignId)
+	}
+	return true
+}
 
 //将二进制流头部的“标记头”重置
 // func (h *HeadSign) ReplaceHeadBase(b []byte) {
@@ -220,13 +231,20 @@ func GetSign(b []byte) *HeadSign {
 
 //从完整包里获得”消息头“
 func GetHead(b []byte) *HeadProto {
-	idex := size_sign
+	index := size_sign
 	h := &HeadProto{
-		MainID: binary.LittleEndian.Uint32(b[idex : idex+4]),
-		SonID:  binary.LittleEndian.Uint32(b[idex+4 : idex+8]),
-		Len:    binary.LittleEndian.Uint32(b[idex+8 : idex+12]),
+		MainID: binary.LittleEndian.Uint32(b[index : index+4]),
+		SonID:  binary.LittleEndian.Uint32(b[index+4 : index+8]),
+		Len:    binary.LittleEndian.Uint32(b[index+8 : index+12]),
 	}
 	return h
+}
+func ParseHead(h *HeadProto,b []byte)bool{
+	index := size_sign
+	h.MainID=binary.LittleEndian.Uint32(b[index : index+4])
+	h.SonID= binary.LittleEndian.Uint32(b[index+4 : index+8])
+	h.Len=   binary.LittleEndian.Uint32(b[index+8 : index+12])
+	return true
 }
 
 //从只有“消息头和消息体”的包中获得”消息头“
@@ -237,4 +255,10 @@ func GetHeadOfProto(b []byte) *HeadProto {
 		Len:    binary.LittleEndian.Uint32(b[+8:+12]),
 	}
 	return h
+}
+
+
+//组合主消息和子消息
+func MergeMsgID(mainid,sonid uint32)uint64{
+	return  uint64(mainid)<<32+uint64(sonid)
 }
