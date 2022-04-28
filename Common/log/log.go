@@ -1,6 +1,10 @@
 package log
 
 import (
+	"Common/util"
+	"fmt"
+	"path"
+	"runtime"
 	"time"
 
 	rotatelogs "github.com/lestrrat-go/file-rotatelogs"
@@ -14,7 +18,8 @@ var Logger = logrus.New()
 
 func init() {
 	//Logger.SetFormatter(&logrus.JSONFormatter{})
-	Logger.AddHook(newLfsHook("logs/"))
+	dirPath, _ :=util.GetCurrentPath()
+	Logger.AddHook(newLfsHook(dirPath+"logs/"))
 }
 
 //Setup ..
@@ -30,77 +35,85 @@ func Setup(lv string) {
 // 设置日志文件切割及软链接
 func newLfsHook(filepath string) logrus.Hook {
 	var err error
-	//===debuglog======================================
-	logpath := filepath + "debug/"
-	writerDebug, err := rotatelogs.New(
+
+	logpath := filepath + "/"
+	writerLog, err := rotatelogs.New(
 		logpath+"%Y%m%d%H%M",
 		rotatelogs.WithLinkName(logpath),       // 生成软链，指向最新日志文件
-		rotatelogs.WithRotationTime(time.Hour), //设置日志分割的时间，这里设置为一小时分割一次
+		rotatelogs.WithRotationTime(24*time.Hour), //设置日志分割的时间，
 		//WithMaxAge和WithRotationCount二者只能设置一个，
 		rotatelogs.WithMaxAge(time.Hour*24*5), // 文件最大保存时间
 	)
 	if err != nil {
 		logrus.Errorf("writerDebug logger error. %+v", errors.WithStack(err))
 	}
-
+	//===debuglog======================================
+	//logpath := filepath + "debug/"
+	//writerDebug, err := rotatelogs.New(
+	//	logpath+"%Y%m%d%H%M",
+	//	rotatelogs.WithLinkName(logpath),       // 生成软链，指向最新日志文件
+	//	rotatelogs.WithRotationTime(time.Hour), //设置日志分割的时间，这里设置为一小时分割一次
+	//	//WithMaxAge和WithRotationCount二者只能设置一个，
+	//	rotatelogs.WithMaxAge(time.Hour*24*5), // 文件最大保存时间
+	//)
+	//if err != nil {
+	//	logrus.Errorf("writerDebug logger error. %+v", errors.WithStack(err))
+	//}
 	//====infolog===================================
-	logpath = filepath + "info/"
-	writerInfo, err := rotatelogs.New(
-		logpath+"%Y%m%d%H%M",
-		rotatelogs.WithLinkName(logpath),
-		rotatelogs.WithRotationTime(time.Hour),
-		rotatelogs.WithMaxAge(time.Hour*24*30),
-	)
-	if err != nil {
-		logrus.Errorf("writerInfo logger error. %+v", errors.WithStack(err))
-	}
+	//logpath = filepath + "info/"
+	//writerInfo, err := rotatelogs.New(
+	//	logpath+"%Y%m%d%H%M",
+	//	rotatelogs.WithLinkName(logpath),
+	//	rotatelogs.WithRotationTime(time.Hour),
+	//	rotatelogs.WithMaxAge(time.Hour*24*30),
+	//)
+	//if err != nil {
+	//	logrus.Errorf("writerInfo logger error. %+v", errors.WithStack(err))
+	//}
 	//===warn log===============================================
-	logpath = filepath + "warn/"
-	writerWarn, err := rotatelogs.New(
-		logpath+"%Y%m%d%H%M",
-		rotatelogs.WithLinkName(logpath),
-		rotatelogs.WithRotationTime(time.Hour),
-		rotatelogs.WithMaxAge(time.Hour*24*30),
-	)
-	if err != nil {
-		logrus.Errorf("writerWarn logger error. %+v", errors.WithStack(err))
-	}
-
+	//logpath = filepath + "warn/"
+	//writerWarn, err := rotatelogs.New(
+	//	logpath+"%Y%m%d%H%M",
+	//	rotatelogs.WithLinkName(logpath),
+	//	rotatelogs.WithRotationTime(time.Hour),
+	//	rotatelogs.WithMaxAge(time.Hour*24*30),
+	//)
+	//if err != nil {
+	//	logrus.Errorf("writerWarn logger error. %+v", errors.WithStack(err))
+	//}
 	//====Errlog===================================
-	logpath = filepath + "error/"
-	writerErr, err := rotatelogs.New(
-		logpath+"%Y%m%d%H%M",
-		rotatelogs.WithLinkName(logpath),
-		rotatelogs.WithRotationTime(time.Hour*24),
-		rotatelogs.WithMaxAge(time.Hour*24*30),
-	)
-	if err != nil {
-		logrus.Errorf("writerErr logger error. %+v", errors.WithStack(err))
-	}
+	//logpath = filepath + "error/"
+	//writerErr, err := rotatelogs.New(
+	//	logpath+"%Y%m%d%H%M",
+	//	rotatelogs.WithLinkName(logpath),
+	//	rotatelogs.WithRotationTime(time.Hour*24),
+	//	rotatelogs.WithMaxAge(time.Hour*24*30),
+	//)
+	//if err != nil {
+	//	logrus.Errorf("writerErr logger error. %+v", errors.WithStack(err))
+	//}
 	//==Fatal log=========================================
-	logpath = filepath + "fatal/"
-	writerFatal, err := rotatelogs.New(
-		logpath+"%Y%m%d%H%M",
-		rotatelogs.WithLinkName(logpath),
-		rotatelogs.WithRotationTime(time.Hour*24),
-		rotatelogs.WithMaxAge(time.Hour*24*30),
-	)
-	if err != nil {
-		logrus.Errorf("writerFatal logger error. %+v", errors.WithStack(err))
-	}
-
+	//logpath = filepath + "fatal/"
+	//writerFatal, err := rotatelogs.New(
+	//	logpath+"%Y%m%d%H%M",
+	//	rotatelogs.WithLinkName(logpath),
+	//	rotatelogs.WithRotationTime(time.Hour*24),
+	//	rotatelogs.WithMaxAge(time.Hour*24*30),
+	//)
+	//if err != nil {
+	//	logrus.Errorf("writerFatal logger error. %+v", errors.WithStack(err))
+	//}
 	//===Panic log===============================================
-	logpath = filepath + "panic/"
-	writerPanic, err := rotatelogs.New(
-		logpath+"%Y%m%d%H%M",
-		rotatelogs.WithLinkName(logpath),
-		rotatelogs.WithRotationTime(time.Hour*24),
-		rotatelogs.WithMaxAge(time.Hour*24*30),
-	)
-	if err != nil {
-		logrus.Errorf("writerPanic logger error. %+v", errors.WithStack(err))
-	}
-
+	//logpath = filepath + "panic/"
+	//writerPanic, err := rotatelogs.New(
+	//	logpath+"%Y%m%d%H%M",
+	//	rotatelogs.WithLinkName(logpath),
+	//	rotatelogs.WithRotationTime(time.Hour*24),
+	//	rotatelogs.WithMaxAge(time.Hour*24*30),
+	//)
+	//if err != nil {
+	//	logrus.Errorf("writerPanic logger error. %+v", errors.WithStack(err))
+	//}
 	/*
 		logrus 拥有六种日志级别：debug、info、warn、error、fatal 和 panic，
 		logrus.Debug(“Useful debugging information.”)
@@ -114,14 +127,34 @@ func newLfsHook(filepath string) logrus.Hook {
 	logrusLogLevel, _ := logrus.ParseLevel("debug")
 	Logger.SetLevel(logrusLogLevel) //设置等级
 
+	Logger.SetReportCaller(true) //设置了这个，CallerPrettyfier才会启用，日志才会输出函数名和代码行数
+	Logger.SetFormatter(&logrus.TextFormatter{
+		//ForceQuote:true,    //键值对加引号
+		TimestampFormat:"2006-01-02 15:04:05",  //时间格式
+		//FullTimestamp:true,
+		CallerPrettyfier: func(frame *runtime.Frame) (function string, file string) {
+			//处理文件名
+			fileName := path.Base(frame.File)
+			fileName+= fmt.Sprintf(" %d",frame.Line)
+			//return frame.Function, fileName
+			return "", fileName
+		},
+	})
+    //json格式的日志
+	//Logger.SetFormatter(&logrus.JSONFormatter{
+	//	TimestampFormat:"2006-01-02 15:04:05",
+	//	PrettyPrint: true,
+	//})
+
+	//日志输出文件的设置
 	lfsHook := lfshook.NewHook(lfshook.WriterMap{
-		logrus.DebugLevel: writerDebug,
-		logrus.InfoLevel:  writerInfo,
-		logrus.WarnLevel:  writerWarn,
-		logrus.ErrorLevel: writerErr,
-		logrus.FatalLevel: writerFatal,
-		logrus.PanicLevel: writerPanic,
-	}, &logrus.TextFormatter{DisableColors: true})
+		logrus.DebugLevel: writerLog,
+		logrus.InfoLevel:  writerLog,
+		logrus.WarnLevel:  writerLog,
+		logrus.ErrorLevel: writerLog,
+		logrus.FatalLevel: writerLog,
+		logrus.PanicLevel: writerLog,
+	},Logger.Formatter)
 
 	return lfsHook
 }

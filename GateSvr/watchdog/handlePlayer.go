@@ -7,10 +7,8 @@ import (
 	"Common/msg"
 	"Common/proto/base"
 	"Common/proto/gatesvrproto"
-	"Common/try"
 	"GateSvr/logic"
 	"github.com/golang/protobuf/proto"
-	"net"
 	"time"
 )
 
@@ -42,62 +40,21 @@ func NewPlayerAgent(session *scokets.Session,userid uint64)*PlayerAgent{
 }
 
 //handleClientConnection 客户端连接请求处理
-func GetPlayerConnection(conn net.Conn) {
-	defer try.Catch()
-	session:=scokets.NewSession( 0,conn,100)
-	defer session.Close()
-	log.Debug("handleClientConnection===================")
-	//fmt.Println(conn.RemoteAddr())
-
-
-	//连接之后的第一条消息，必须是登入获取userid
-	conn.SetReadDeadline(time.Now().Add(time.Second * 1))
-	n, err := conn.Read(session.ReadBuf)
-	if err != nil {
-		log.Error(conn.RemoteAddr().String(), "read first msg error: ", err)
-		return //当远程客户端连接发生错误（断开）后，终止此协程。
+func GetPlayerConnection(client *scokets.Client) {
+	agent:= &PlayerAgent{
+		client: client,
+		SignHead: new(msg.HeadSign),
+		MsgHead: new(msg.HeadProto),
 	}
-	logindata := &base.ClientLogin{}
-	if err = proto.Unmarshal(session.ReadBuf[:n], logindata);err != nil{
-		log.Errorln(conn.RemoteAddr().String(), "encode first msg error: ", err)
-		return //当远程客户端连接发生错误（断开）后，终止此协程。
-	}
-	//fmt.Println(logindata)
-
-	//登入验证
-	if logic.UserLogin(logindata.Userid, logindata.Token) != 0 {
-		//登入验证失败
-		conn.Write(msg.CreateErrorMsg(msg.Err_Login_AuthenticationFail))
-		return
-	}
-	//顶号处理
-	if !G_ClientManager.PlayerIsExists(logindata.Userid) {
-		//顶号失败
-		conn.Write(msg.CreateErrorMsg(msg.Err_Login_AuthenticationFail))
-		return
-	}
-	agenter:=NewPlayerAgent(session,logindata.Userid)
-	//身份验证成功,加入管理队列
-	G_ClientManager.AddPlayerClient(agenter)
-	defer G_ClientManager.RemovePlayerClient(agenter)
-
-
-	//发送连接成功消息
-	tPro := &gatesvrproto.PlayerInfo{
-	}
-	dPro, _ := proto.Marshal(tPro)
-	conn.Write(msg.CreateWholeProtoData(msg.MID_Gate, msg.Gate_SC_SendPlayerData, dPro))
-	log.Debugf("客户端登入成功 Userid[%d]", logindata.Userid)
-
-	agenter.client.Start()
+	agent.client.SetHandler(agent)
+	agent.client.Start()
 }
 
 func (s *PlayerAgent)BeforeHandle(client *scokets.Client,len int,buffer []byte){
 	if len < msg.GetHeadLength() { //消息大小安全检测
-		log.Error("server msg len too samll")
+		log.Warnln("player msg len too samll")
 		return
 	}
-
 	s.SignHead.Decode(buffer)
 
 	switch s.SignHead.SignType {
@@ -117,8 +74,8 @@ func (s *PlayerAgent)BeforeHandle(client *scokets.Client,len int,buffer []byte){
 				buf :=scokets.GetByteFormPool()
 				copy(buf, buffer[:len])
 				msg.ChangeSignHead(msg.Sign_userid, sd.UserId, buf)//将标记头改成来源
-				serverid:=msg.EncodeServerID(s.SignHead.Tid, sid)
-				if G_ClientManager.SendToServer(serverid, buf) {
+				serverId:=msg.EncodeServerID(s.SignHead.Tid, sid)
+				if G_ClientManager.SendToServer(serverId, buf[:len]) {
 					break
 				}
 			}
@@ -127,7 +84,6 @@ func (s *PlayerAgent)BeforeHandle(client *scokets.Client,len int,buffer []byte){
 		} else if s.SignHead.Tid != 0 && s.SignHead.Sid != 0 {
 			//允不允许客户端指向发送指定的服务，可能存在风险
 		}
-
 		//fmt.Print("ss")
 	case msg.Sign_userid: //后8位是userid
 		//userid := binary.BigEndian.Uint64(buffer[1:9])
@@ -138,8 +94,48 @@ func (s *PlayerAgent)BeforeHandle(client *scokets.Client,len int,buffer []byte){
 		return
 	}
 }
-func (s *PlayerAgent)CloseHandle(clisent *scokets.Client){
+func (s *PlayerAgent)CloseHandle(client *scokets.Client){
+	if client.Data==nil{
+		return
+	}
+	G_ClientManager.RemovePlayerClient(client)
+}
 
+func playerLogin(client *scokets.Client,len int,buf []byte) {
+	obj := &base.ClientLogin{}
+	err := proto.Unmarshal(buf[:len], obj)
+	if err != nil {
+		return
+	}
+
+	//登入验证
+	if logic.UserLogin(obj.Userid, obj.Token) != 0 {
+		//登入验证失败
+		log.Debugf("玩家登入验证失败 uid[%d],token[%s]",obj.Userid, obj.Token)
+		client.SendData(msg.CreateErrorMsg(msg.Err_Login_AuthenticationFail))
+		client.Close()
+		return
+	}
+	//顶号
+	if !G_ClientManager.PlayerIsExists(obj.Userid) {
+		//顶号处理
+
+		//顶号失败
+		client.SendData(msg.CreateErrorMsg(msg.Err_Login_AuthenticationFail))
+		return
+	}
+	playerData :=&PlayerData{
+		UserId: obj.Userid,
+		SvrList: make(map[uint32]uint32,10),
+	}
+	client.Data= playerData
+	G_ClientManager.AddPlayerClient(client)
+
+	//返回结果
+	tPro := &gatesvrproto.PlayerInfo{
+	}
+	dPro, _ := proto.Marshal(tPro)
+	client.SendData(msg.CreateWholeProtoData(msg.MID_Gate, msg.SC_PlayerLoginGateSvr, dPro))
 }
 
 

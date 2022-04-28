@@ -25,6 +25,8 @@ func UserLogin(userid uint64, token string) byte {
 
 //服务器连接的身份验证
 func ServerLoginAuthentication(serverid uint64, password string) bool {
-
+	if password!="123"{
+		return false
+	}
 	return true
 }

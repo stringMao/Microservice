@@ -93,7 +93,7 @@ func ConnectGateSvrs() {
 	logindata := &base.ServerLogin{
 		Tid:      uint32(config.App.TID),
 		Sid:      uint32(config.App.SID),
-		Password: "test",
+		Password: "123",
 	}
 
 	
@@ -134,7 +134,7 @@ func ConnectGateSvrs() {
 
 					//agenter保存到队列
 					ServerList.Add(serverid,logicHandler)
-					connector.SendData(send.CreateMsgToServerID(serverid, msg.MID_Gate, msg.SCS_SvrRegisterGateSvr, pData))
+					connector.SendData(send.CreateMsgToServerID(serverid, msg.MID_Gate, msg.SS_SvrRegisterGateSvr, pData))
 					//connector.SendData(pData)
 				}
 			}

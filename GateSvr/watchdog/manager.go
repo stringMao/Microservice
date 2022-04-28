@@ -41,13 +41,15 @@ func (c *ClientManager)ServerIsExists(serverid uint64)bool{
 	return has
 }
 
-func (c *ClientManager)AddPlayerClient(p *PlayerAgent){
-	s:=p.client.Data.(*PlayerData)
+func (c *ClientManager)AddPlayerClient(p *scokets.Client){
+	s:=p.Data.(*PlayerData)
 	c.PlayerMap.Store(s.UserId,p)
+	log.Debugf("用户加入队列：uid[%d]",s.UserId)
 }
-func (c *ClientManager)RemovePlayerClient(p *PlayerAgent){
-	s:=p.client.Data.(*PlayerData)
+func (c *ClientManager)RemovePlayerClient(p *scokets.Client){
+	s:=p.Data.(*PlayerData)
 	c.PlayerMap.Delete(s.UserId)
+	log.Debugf("用户删除队列：uid[%d]",s.UserId)
 }
 func (c *ClientManager)PlayerIsExists(userid uint64)bool{
 	_,has:=c.PlayerMap.Load(userid)

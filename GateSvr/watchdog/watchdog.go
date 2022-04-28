@@ -22,24 +22,23 @@ func Start() {
 	//创建代理管理器
 	G_ClientManager=NewClientManager()
 
-	scokets.InitBytePool(1000,1024,1024)
-
 	ServerListener =scokets.NewListener(scokets.Type_Scoket, fmt.Sprintf("%s:%d",config.App.WebManagerIP,config.App.ServerPort) ,GetServerConnection)
 	ServerListener.AddHandleFuc(msg.Gate_SS_ClientJionResult,JionServerResult)
-	ServerListener.AddHandleFuc(msg.SCS_SvrRegisterGateSvr,SvrRegister)
+	ServerListener.AddHandleFuc(msg.SS_SvrRegisterGateSvr,SvrRegister)
 	ServerListener.StartListen()
 
-	//PlayerListener =scokets.NewListener(scokets.Type_Scoket,fmt.Sprintf("%s:%d",config.App.WebManagerIP,config.App.ClientPort),GetPlayerConnection)
-	//PlayerListener.AddHandleFuc(msg.Gate_CS_JionServerReq,ReqJionServer)
-	//PlayerListener.AddHandleFuc(msg.Gate_CS_LeaveServerReq,ReqLeaveServer)
-	//PlayerListener.StartListen()
+	PlayerListener =scokets.NewListener(scokets.Type_Scoket,fmt.Sprintf("%s:%d",config.App.WebManagerIP,config.App.ClientPort),GetPlayerConnection)
+	PlayerListener.AddHandleFuc(msg.CS_PlayerLoginGateSvr,playerLogin)
+	PlayerListener.AddHandleFuc(msg.Gate_CS_JionServerReq,ReqJionServer)
+	PlayerListener.AddHandleFuc(msg.Gate_CS_LeaveServerReq,ReqLeaveServer)
+	PlayerListener.StartListen()
 }
 
 //====================================================================================================
 //玩家消息
-func ReqJionServer(client *scokets.Client,buf []byte){
+func ReqJionServer(client *scokets.Client,len int,buf []byte){
 	obj := &base.ClientJionServerReq{}
-	err := proto.Unmarshal(buf, obj)
+	err := proto.Unmarshal(buf[:len], obj)
 	if err != nil {
 		return
 	}
@@ -67,9 +66,9 @@ func ReqJionServer(client *scokets.Client,buf []byte){
 	G_ClientManager.SendToServer(serverid, send.CreateMsgToSvr(msg.Gate_SS_ClientJionReq, dPro))
 }
 
-func ReqLeaveServer(client *scokets.Client,buf []byte){
+func ReqLeaveServer(client *scokets.Client,len int,buf []byte){
 	obj := &base.ClientLeaveServerReq{}
-	err := proto.Unmarshal(buf, obj)
+	err := proto.Unmarshal(buf[:len], obj)
 	if err != nil {
 		return
 	}

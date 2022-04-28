@@ -23,20 +23,19 @@ func init() {
 }
 
 func main() {
-
 	//web后台功能开启
 	if !registerWebManagerRoute() {
 		log.Fatalln("web服务启动失败!")
 	}
 	log.Infoln("web服务启动成功!")
 
-	//服务注册
+	//consul注册
 	if !registerToDiscovery() {
 		log.Fatalln("consul注册失败!")
 	}
 	log.Infoln("consul注册成功!")
 
-	//
+	//服务端口监听
 	watchdog.StartWork()
 
 	c := make(chan os.Signal)

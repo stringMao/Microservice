@@ -145,7 +145,7 @@ func (s *ServerAgent)BeforeHandle(client *scokets.Client,len int,buffer []byte){
 			copy(buf, buffer[:len])
 			msg.ChangeSignHead(msg.Sign_serverid, sd.Serverid, buf)//将标记头改成来源
 
-			if !G_ClientManager.SendToServer(s.SignHead.SignId, buf) {
+			if !G_ClientManager.SendToServer(s.SignHead.SignId, buf[:len]) {
 				s.client.Session.Send(msg.CreateErrorMsg(msg.Err_MsgSendFail_ServerNoExist))
 			}
 		} else if s.SignHead.Tid != 0 && s.SignHead.Sid == 0 {
@@ -155,8 +155,8 @@ func (s *ServerAgent)BeforeHandle(client *scokets.Client,len int,buffer []byte){
 	case msg.Sign_userid: //后8位是userid
 		//消息转发给客户端
 		buf :=scokets.GetByteFormPool()
-		copy(buf, buffer[msg.GetSignHeadLength():len])
-		G_ClientManager.SendToPlayer(s.SignHead.SignId, buf)
+		n:=copy(buf, buffer[msg.GetSignHeadLength():len])
+		G_ClientManager.SendToPlayer(s.SignHead.SignId, buf[:n])
 	default: //发现非法协议
 		log.Errorln( "发现服务器的非法协议")
 		return
