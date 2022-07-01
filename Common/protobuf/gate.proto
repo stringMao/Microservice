@@ -1,12 +1,66 @@
 syntax="proto3"; //版本号
-package gatesvrproto;  //包名
-option go_package = "gatesvrproto/";
+package gateProto;  //包名
+option go_package = "gateProto/";
 
 message PlayerInfo{
-    string NickName=1;
-    string Avatar=2;
-    int32    Gender=3;
+    string  NickName=1;
+    string  Avatar=2;
+    int32   Gender=3;
     int32   Age=4;
     int64   Score=5;
     int64   Gold=6;
 }
+
+// 服务器注册网关服请求
+message SvrRegisterReq{
+    uint32  tid=1;
+    uint32  sid=2;
+    string password=3;
+    uint32 svrType=4;  //服务器类型 1=无状态服务 11=有状态且用户连接必须唯一 12=无状态且用户连接必须唯一
+}
+
+//服务器注册网关服结果
+message SvrRegisterResult{
+    int32   code=1;   //0表示成功
+    string  msg=2;
+    uint32  tid=3;
+    uint32  sid=4;
+    string  name=5;
+}
+
+//客户端登入gate请求协议
+message UserLoginReq{
+    uint64 userid=1;
+    string token=2;
+}
+//客户端登入gate 结果返回协议
+message UserLoginResult{
+    int32   code=1;   //0表示成功
+    uint32  tid=3;
+    uint32  sid=4;
+    string  name=5;
+}
+
+//客户端 加入or退出 服务的请求
+message JoinQuitServerReq{
+    //uint64  userid=1;
+    uint32  tid=2;
+}
+//客户端 加入or退出 服务的结果返回
+message JoinQuitServerResult{
+    int32   code=1;   //结果码 0成功
+    uint64  userid=2;
+    uint32  tid=3;
+}
+
+message UserJoinQuit{
+    uint64  userid=1;
+}
+message UserJoinQuitResult{
+    int32   code=1;
+    uint64  userid=2;
+}
+//message JoinQuitServerForce{
+//    uint64  userid=1;
+//}
+

@@ -46,5 +46,8 @@ func Init() {
 	if !dbmanager.redis1.Open() {
 		log.Logger.Fatalln("redis [1]init fail")
 	}
+	//连接测试
+	redisCon :=GetRedis()
+	defer redisCon.Close()
 	log.Logger.Info("redis [1] init success")
 }

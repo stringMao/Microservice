@@ -6,64 +6,41 @@ option go_package = "base/";
 
 
 
-//LoginData 客户端登入协议
-message ClientLogin{
-    uint64 userid=1;
-    string token=2;
-}
-//ServerLogin 服务器连接登入协议
-message ServerLogin{
-    //uint64  serverid=1;  //0+0+sid+tid 4个2字节拼接
-    uint32  tid=1;
-    uint32  sid=2;
-    string password=3;
-}
-
-//LoginResult 客户端or服务器 登入网关服的结果消息
-message LoginResult{
-    int32  code=1;   //0表示成功
-    string msg=2;
-    uint32  tid=3;
-    uint32  sid=4;
-    string  name=5;
-}
-
-
 //客户端请求登入某个业务服务器
-message ClientJionServerReq{
-    uint32  tid=1;
-}
-
-message  ToClientJionServerResult{
-    // /uint32  tid=1;
-    int32   codeid=1;   //结果码 0成功 
-    uint64  serverid=2;  //成功后，下发分配的具体服务器id
-}
-message ClientLeaveServerReq{
-    uint32  tid=1;
-}
-
-message  ToClientLeaveServerResult{
-    // /uint32  tid=1;
-    int32   codeid=1;   //结果码 0成功 
-    uint64  serverid=2;  //成功后，下发分配的具体服务器id
-}
+//message ClientJionServerReq{
+//    uint32  tid=1;
+//}
+//
+//message  ToClientJionServerResult{
+//    // /uint32  tid=1;
+//    int32   codeid=1;   //结果码 0成功 lv
+//    uint64  serverid=2;  //成功后，下发分配的具体服务器id
+//}
+//message ClientLeaveServerReq{
+//    uint32  tid=1;
+//}
+//
+//message  ToClientLeaveServerResult{
+//    // /uint32  tid=1;
+//    int32   codeid=1;   //结果码 0成功
+//    uint64  serverid=2;  //成功后，下发分配的具体服务器id
+//}
 
 //gate通知服务器用户想要登入你
-message NotifyJionServerReq{
-    uint64 userid=1;
-}
-message NotifyJionServerResult{
-    uint64  userid=1;
-    int32   codeid=2;   //结果码 0成功
-}
-message NotifyLeaveServerReq{
-    uint64 userid=1;
-}
-message NotifyLeaveServerResult{
-    uint64  userid=1;
-    int32   codeid=2;   //结果码 0成功
-}
+//message NotifyJionServerReq{
+//    uint64 userid=1;
+//}
+//message NotifyJionServerResult{
+//    uint64  userid=1;
+//    int32   codeid=2;   //结果码 0成功
+//}
+//message NotifyLeaveServerReq{
+//    uint64 userid=1;
+//}
+//message NotifyLeaveServerResult{
+//    uint64  userid=1;
+//    int32   codeid=2;   //结果码 0成功
+//}
 
 //ClientOffline 客户端断线通知
 message ClientOffline{

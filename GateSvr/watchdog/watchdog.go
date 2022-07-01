@@ -2,115 +2,168 @@ package watchdog
 
 import (
 	"Common/constant"
-	"Common/kernel/go-scoket/scokets"
+	"Common/kernel/go-scoket/sockets"
+	"Common/log"
 	"Common/msg"
-	"Common/proto/base"
+	"Common/proto/codes"
+	"Common/proto/gateProto"
 	"GateSvr/config"
-	"GateSvr/core/send"
-	"GateSvr/util/msgbody"
 	"fmt"
 	"github.com/golang/protobuf/proto"
 )
 
 var G_ClientManager *ClientManager=nil
 //代理管理对象创建
-var ServerListener *scokets.Listener =nil
-var PlayerListener *scokets.Listener =nil
+var ServerListener *sockets.Listener =nil
+var PlayerListener *sockets.Listener =nil
+
+
 
 //业务启动
 func Start() {
 	//创建代理管理器
 	G_ClientManager=NewClientManager()
 
-	ServerListener =scokets.NewListener(scokets.Type_Scoket, fmt.Sprintf("%s:%d",config.App.WebManagerIP,config.App.ServerPort) ,GetServerConnection)
-	ServerListener.AddHandleFuc(msg.Gate_SS_ClientJionResult,JionServerResult)
-	ServerListener.AddHandleFuc(msg.SS_SvrRegisterGateSvr,SvrRegister)
+	ServerListener = sockets.NewListener(sockets.Type_Socket, fmt.Sprintf("%s:%d",config.App.WebManagerIP,config.App.ServerPort) ,GetServerConnection)
+	ServerListener.AddHandleFuc(msg.ToGateSvr_UserJoinSvrResult, JoinServerResult)
+	ServerListener.AddHandleFuc(msg.ToGateSvr_UserQuitSvrResult, QuitServerResult)
+	ServerListener.AddHandleFuc(msg.ToGateSvr_SvrRegister,SvrRegister)
 	ServerListener.StartListen()
 
-	PlayerListener =scokets.NewListener(scokets.Type_Scoket,fmt.Sprintf("%s:%d",config.App.WebManagerIP,config.App.ClientPort),GetPlayerConnection)
-	PlayerListener.AddHandleFuc(msg.CS_PlayerLoginGateSvr,playerLogin)
-	PlayerListener.AddHandleFuc(msg.Gate_CS_JionServerReq,ReqJionServer)
-	PlayerListener.AddHandleFuc(msg.Gate_CS_LeaveServerReq,ReqLeaveServer)
+	PlayerListener = sockets.NewListener(sockets.Type_Socket,fmt.Sprintf("%s:%d",config.App.WebManagerIP,config.App.ClientPort),GetPlayerConnection)
+	PlayerListener.AddHandleFuc(msg.ToGateSvr_UserLogin,UserLogin)
+	PlayerListener.AddHandleFuc(msg.ToGateSvr_UserJoinSvrReq, UserJoinSvrReq)
+	PlayerListener.AddHandleFuc(msg.ToGateSvr_UserQuitSvrReq, UserQuitSvrReq)
 	PlayerListener.StartListen()
 }
 
+
+
+
 //====================================================================================================
-//玩家消息
-func ReqJionServer(client *scokets.Client,len int,buf []byte){
-	obj := &base.ClientJionServerReq{}
-	err := proto.Unmarshal(buf[:len], obj)
+
+// UserJoinSvrReq 玩家消息
+func UserJoinSvrReq(engine *sockets.Engine,buf []byte){
+	pData := &gateProto.JoinQuitServerReq{}
+	err := proto.Unmarshal(buf, pData)
 	if err != nil {
 		return
 	}
-	if obj.Tid == constant.TID_GateSvr {
+	if pData.Tid == constant.TID_GateSvr {
 		return
 	}
-
-	pd:=client.Data.(PlayerData)
-	if _,has:=pd.SvrList[obj.Tid];has{
+	pUserData:= engine.Data.(*PlayerData)
+	log.Debugf("UserJoinSvrReq uid[%d] tid[%d]",pUserData.UserId,pData.Tid)
+	if _,has:=pUserData.SvrList[pData.Tid];has{
 		//已经加入该type的服务器
-		client.Session.Send(send.CreateMsgToClient(msg.Gate_SC_ClientJionResult,
-			msgbody.MakeToClientJionServerResult(2, uint64(obj.Tid))))
+		pObj:=&gateProto.JoinQuitServerResult{
+			Code:   codes.Code_JoinSvr_AgainJoin, //0成功 1服务器找不到 2重复加入
+			Tid:  	pData.Tid,
+		}
+		engine.SendData(msg.NewClientMessage(msg.ToUser_JoinSvrResult,pObj))
 		return
 	}
-	serverid :=G_ClientManager.AllocSvr(obj.Tid)
-	if serverid == 0 {
+	serverId :=G_ClientManager.AllocSvr(pData.Tid)
+	if serverId == 0 {
 		//服务器找不到
-		client.Session.Send(send.CreateMsgToClient(msg.Gate_SC_ClientJionResult,
-			msgbody.MakeToClientJionServerResult(1, msg.EncodeServerID(obj.Tid, 0))))
+		pObj:=&gateProto.JoinQuitServerResult{
+			Code:   codes.Code_JoinSvr_SvrNoFind,
+			Tid:  pData.Tid,
+		}
+		engine.SendData(msg.NewClientMessage(msg.ToUser_JoinSvrResult,pObj))
 		return
 	}
-	//转发加入请求给指定服务器
-	tPro := &base.NotifyJionServerReq{Userid: pd.UserId}
-	dPro, _ := proto.Marshal(tPro)
-	G_ClientManager.SendToServer(serverid, send.CreateMsgToSvr(msg.Gate_SS_ClientJionReq, dPro))
+
+	pObj := &gateProto.UserJoinQuit{Userid: pUserData.UserId}
+	//发送加入请求给指定服务器
+	G_ClientManager.SendToServer2(serverId,
+		msg.NewMessage(msg.CommonSvrMsg_UserJoin,0,config.App.ServerID,pObj))
+
 }
 
-func ReqLeaveServer(client *scokets.Client,len int,buf []byte){
-	obj := &base.ClientLeaveServerReq{}
-	err := proto.Unmarshal(buf[:len], obj)
+func UserQuitSvrReq(engine *sockets.Engine,buf []byte){
+	pData := &gateProto.JoinQuitServerReq{}
+	err := proto.Unmarshal(buf, pData)
 	if err != nil {
 		return
 	}
-	if obj.Tid == constant.TID_GateSvr {
+	if pData.Tid == constant.TID_GateSvr {
 		return
 	}
 
-	pd:=client.Data.(PlayerData)
-	if sid,has:=pd.SvrList[obj.Tid];has{
-		serverid:=msg.EncodeServerID(obj.Tid, sid)
-		//转发加入请求给指定服务器
-		tPro := &base.NotifyLeaveServerReq{Userid: pd.UserId}
-		dPro, _ := proto.Marshal(tPro)
-		G_ClientManager.SendToServer(serverid, send.CreateMsgToSvr(msg.Gate_SS_ClientLeaveReq, dPro))
+	pUserData:= engine.Data.(*PlayerData)
+	log.Debugf("UserQuitSvrReq uid[%d] tid[%d]",pUserData.UserId,pData.Tid)
+	if sid,has:=pUserData.SvrList[pData.Tid];has{
+		serverId:=msg.EncodeServerID(pData.Tid, sid)
+		//转发离开请求给指定服务器
+		pObj := &gateProto.UserJoinQuit{Userid: pUserData.UserId}
+		G_ClientManager.SendToServer2(serverId,
+			msg.NewMessage(msg.CommonSvrMsg_UserQuit,0,config.App.ServerID,pObj))
+	}else{
+		//玩家本来就没有加入该服务，那就直接告知退出成功即可
+		pObj:=&gateProto.JoinQuitServerResult{
+			Code:   codes.Code_Success, //0成功
+			Tid:  	pData.Tid,
+		}
+		engine.SendData(msg.NewClientMessage(msg.ToUser_QuitSvrResult,pObj))
 	}
 
 }
 
-//服务器消息
-func JionServerResult(client *scokets.Client,len int,buf []byte){
-	obj := &base.NotifyJionServerResult{}
-	if err := proto.Unmarshal(buf[:len], obj); err != nil {
+// JoinServerResult 服务器返回的用户join结果消息
+func JoinServerResult(engine *sockets.Engine,buf []byte){
+	pData := &gateProto.UserJoinQuitResult{}
+	if err := proto.Unmarshal(buf, pData); err != nil {
 		//协议解析错误
 		return
 	}
-	cdata:=client.Data.(ServerData)
-	if obj.Codeid != 0 {
-		//加入失败
-		G_ClientManager.SendToPlayer(obj.Userid, send.CreateMsgToClient(msg.Gate_SC_ClientJionResult,
-			msgbody.MakeToClientJionServerResult(int(obj.Codeid), cdata.Serverid)))
-		return
+	pServerData:= engine.Data.(*ServerData)
+	log.Debugf("JoinServerResult code[%d],tid[%d],sid[%d],uid[%d]",pData.Code,pServerData.Tid,pServerData.Sid,pData.Userid)
+	if pData.Code== codes.Code_Success{
+		pPlayerEngine:=G_ClientManager.GetPlayer(pData.Userid)
+		if pPlayerEngine==nil{
+			return
+		}
+		//保存join结果
+		data:=pPlayerEngine.Data.(*PlayerData)
+		if data!=nil && data.SvrList!=nil {
+			data.SvrList[pServerData.Tid] = pServerData.Sid
+		}
 	}
-	player:=G_ClientManager.GetPlayer(obj.Userid)
-	if player==nil{
-		return
-	}
-	
-	//保存jion结果
-	player.JionServer(cdata.Tid,cdata.Sid)
-
 	//成功通知客户端
-	G_ClientManager.SendToPlayer(obj.Userid,send.CreateMsgToClient(msg.Gate_SC_ClientJionResult,
-		msgbody.MakeToClientJionServerResult(int(obj.Codeid), cdata.Serverid)))
+	pObj := &gateProto.JoinQuitServerResult{
+		Code:   pData.Code, //0成功
+		Tid: 	pServerData.Tid,
+	}
+	G_ClientManager.SendToPlayer2(pData.Userid,msg.NewClientMessage(msg.ToUser_JoinSvrResult,pObj))
+}
 
+// QuitServerResult 服务器返回的用户Quit结果消息
+func QuitServerResult(engine *sockets.Engine,buf []byte){
+	pData := &gateProto.UserJoinQuitResult{}
+	if err := proto.Unmarshal(buf, pData); err != nil {
+		//协议解析错误
+		return
+	}
+	pServerData:= engine.Data.(*ServerData)
+	log.Debugf("QuitServerResult code[%d],tid[%d],sid[%d],uid[%d]",pData.Code,pServerData.Tid,pServerData.Sid,pData.Userid)
+	if pData.Code== codes.Code_Success{
+		pPlayerEngine:=G_ClientManager.GetPlayer(pData.Userid)
+		if pPlayerEngine==nil{
+			return
+		}
+
+		//保存quit结果
+		data:=pPlayerEngine.Data.(*PlayerData)
+		if data!=nil && data.SvrList!=nil {
+			delete(data.SvrList, pServerData.Tid)
+		}
+
+	}
+	//通知客户端
+	pObj := &gateProto.JoinQuitServerResult{
+		Code:   pData.Code, //0成功 1服务器找不到 2重复加入
+		Tid: pServerData.Tid,
+	}
+	G_ClientManager.SendToPlayer2(pData.Userid,msg.NewClientMessage(msg.ToUser_QuitSvrResult,pObj))
 }

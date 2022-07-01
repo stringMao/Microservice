@@ -11,7 +11,6 @@ require (
 	github.com/gomodule/redigo v1.8.5
 	github.com/hashicorp/consul/api v1.9.1
 	github.com/smartystreets/goconvey v1.7.2 // indirect
-	google.golang.org/protobuf v1.27.1
 )
 
 replace Common v0.0.0 => ../Common

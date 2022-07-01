@@ -1,9 +1,8 @@
-package scokets
+package sockets
 
 import (
 	"Common/log"
 	"net"
-	//uuid "github.com/satori/go.uuid"
 	"time"
 )
 
@@ -11,10 +10,10 @@ type Listener struct {
 	Handler
 	NetType   		int  //1=scoket  2=webscoket
 	Addr       		string
-	CallBack        func(client *Client)
+	CallBack        func(client *Engine)
 }
 
-func NewListener(netType int,addr string,callback func(client *Client))*Listener{
+func NewListener(netType int,addr string,callback func(client *Engine))*Listener{
 	return &Listener{
 		NetType: netType,
 		Addr: addr,
@@ -25,7 +24,7 @@ func NewListener(netType int,addr string,callback func(client *Client))*Listener
 func (l Listener)StartListen(){
 	go func(){
 		//defer try.Catch()
-		if l.NetType==Type_Scoket{
+		if l.NetType== Type_Socket {
 			netListen, err := net.Listen("tcp", l.Addr)
 			if err != nil {
 				log.Fatalln(err)
@@ -36,15 +35,15 @@ func (l Listener)StartListen(){
 
 			for {
 				if conn, err := netListen.Accept();err==nil{
-					session:=NewSession(0,conn,100)
-					cli:=NewClient(ServerConnect,session,nil,5*time.Second)
+					session:=NewSession(conn,100)
+					cli:= NewEngine(ServerConnect,session,WithHeart(5*time.Second))
 					//go cli.Start()
 					if l.CallBack!=nil{
 						go l.CallBack(cli)
 					}
 				}
 			}
-		}else if l.NetType==Type_WebScoket{
+		}else if l.NetType== Type_WebSocket {
 			log.Fatalln("webscoket 未实现")
 			return
 		}

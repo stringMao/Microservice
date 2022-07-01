@@ -16,24 +16,24 @@ type ServerConfig struct {
 	// WebManagerPort int    `tag:"webmanager" key:"port"`
 	//Base       setting.BaseConfig `base:"true"`
 	setting.BaseConfig `base:"true"`
-	ClientPort         int `tag:"business" key:"clientPort"`
-	ServerPort         int `tag:"business" key:"serverPort"`
+	ClientPort         int `tag:"business" key:"clientPort" binding:"required"`
+	ServerPort         int `tag:"business" key:"serverPort" binding:"required"`
 
-	RedisHost     string `tag:"redis" key:"host"`
-	RedisPort     int    `tag:"redis" key:"port"`
-	RedisUserName string `tag:"redis" key:"username"`
-	RedisPwd      string `tag:"redis" key:"password"`
-	RedisNum      int    `tag:"redis" key:"database"`
-	RedisMaxOpen  int    `tag:"redis" key:"maxopenconns"`
-	RedisMaxIdle  int    `tag:"redis" key:"maxidleconns"`
+	RedisHost     string `tag:"redis" key:"host" binding:"required"`
+	RedisPort     int    `tag:"redis" key:"port" binding:"required"`
+	RedisUserName string `tag:"redis" key:"username" binding:"required"`
+	RedisPwd      string `tag:"redis" key:"password" binding:"required"`
+	RedisNum      int    `tag:"redis" key:"database" binding:"required"`
+	RedisMaxOpen  int    `tag:"redis" key:"maxopenconns" binding:"required"`
+	RedisMaxIdle  int    `tag:"redis" key:"maxidleconns" binding:"required"`
 
-	DBHost     string `tag:"mysql" key:"host"`
-	DBPort     int    `tag:"mysql" key:"port"`
-	DBUserName string `tag:"mysql" key:"username"`
-	DBPwd      string `tag:"mysql" key:"password"`
-	DBName     string `tag:"mysql" key:"dbname"`
-	DBMaxOpen  int    `tag:"mysql" key:"maxopenconns"`
-	DBMaxIdle  int    `tag:"mysql" key:"maxidleconns"`
+	DBHost     string `tag:"mysql" key:"host" binding:"required"`
+	DBPort     int    `tag:"mysql" key:"port" binding:"required"`
+	DBUserName string `tag:"mysql" key:"username" binding:"required"`
+	DBPwd      string `tag:"mysql" key:"password" binding:"required"`
+	DBName     string `tag:"mysql" key:"dbname" binding:"required"`
+	DBMaxOpen  int    `tag:"mysql" key:"maxopenconns" binding:"required"`
+	DBMaxIdle  int    `tag:"mysql" key:"maxidleconns" binding:"required"`
 }
 
 var App *ServerConfig
@@ -45,5 +45,5 @@ func init() {
 	App.TID = constant.TID_GateSvr
 	App.ServerID = constant.GetServerID(App.TID, App.SID)
 	//日志等级设置
-	log.Setup(App.LogLv)
+	log.Reset(App.LogLv,App.LogWithFunc,App.LogWithFile)
 }

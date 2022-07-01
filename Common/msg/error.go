@@ -6,6 +6,17 @@ import (
 	"github.com/gogo/protobuf/proto"
 )
 
+
+//错误码
+const (
+	// ErrCode_Undefined  未定义
+	ErrCode_Undefined  int32 = 1
+
+	// ErrCode_LoginGateSvrAuthFail 网关服登入失败-身份验证未通过
+	ErrCode_LoginGateSvrAuthFail int32=1000
+
+)
+
 //错误消息的子命令定义
 //MainID_Err => SonID
 const (

@@ -8,7 +8,7 @@ import (
 
 type ServerConfig struct {
 	setting.BaseConfig `base:"true"`
-	Port               int `tag:"business" key:"port"`
+	Port               int `tag:"business" key:"port" binding:"required"`
 }
 
 var App *ServerConfig
@@ -18,5 +18,5 @@ func init() {
 	App.TID = constant.TID_HallSvr
 	setting.LoadAppConfig(App)
 	//日志等级设置
-	log.Setup(App.LogLv)
+	log.Reset(App.LogLv,App.LogWithFunc,App.LogWithFile)
 }

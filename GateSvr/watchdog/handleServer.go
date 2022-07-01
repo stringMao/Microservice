@@ -2,221 +2,181 @@ package watchdog
 
 import (
 	"Common/constant"
-	"Common/kernel/go-scoket/scokets"
+	"Common/kernel/go-scoket/sockets"
 	"Common/log"
 	"Common/msg"
 	"Common/proto/base"
+	"Common/proto/codes"
+	"Common/proto/gateProto"
+	"Common/try"
 	"GateSvr/config"
-	"GateSvr/core/send"
 	"GateSvr/logic"
 	"github.com/golang/protobuf/proto"
-	"time"
 )
 
 type ServerData struct {
 	Tid      uint32 //服务类型id
 	Sid      uint32 //同服务类型下的唯一标识id
 	Serverid uint64 //0+0+sid+tid 位运算获得
+	SvrType  uint32
 }
 
 type ServerAgent struct {
-	SignHead *msg.HeadSign
-	MsgHead  *msg.HeadProto
-	client *scokets.Client
+	//SignHead *msg.HeadSign
+	//MsgHead  *msg.HeadProto
+	engine *sockets.Engine
 }
 
-func NewServerAgent(session *scokets.Session,tid,sid uint32)*ServerAgent{
-	serverid:=msg.EncodeServerID(tid, sid)
-	svrdata:=&ServerData{
-		Tid: tid,
-		Sid: sid,
-		Serverid: serverid,
-	}
-	session.SetID(serverid)
-
-	agent:= &ServerAgent{
-		client: scokets.NewClient(scokets.ServerConnect,session,svrdata,4*time.Second),
-		SignHead: new(msg.HeadSign),
-		MsgHead: new(msg.HeadProto),
-	}
-	agent.client.SetHandler(agent)
-
-	return agent
-}
-
-//服务器连接请求处理
-func GetServerConnection(client *scokets.Client){
+// GetServerConnection 服务器连接请求处理
+func GetServerConnection(engine *sockets.Engine){
 	log.Debugln("收到新的服务器连接")
-	pAgenter:= &ServerAgent{
-		client: client,
-		SignHead: new(msg.HeadSign),
-		MsgHead: new(msg.HeadProto),
+	pAgent:= &ServerAgent{
+		engine: engine,
+		//SignHead: new(msg.HeadSign),
+		//MsgHead:  new(msg.HeadProto),
 	}
-	pAgenter.client.SetHandler(pAgenter)
-	//G_ClientManager.AddServerClient(pAgenter)
-	//defer G_ClientManager.RemoveServerClient(pAgenter)
-
-	pAgenter.client.Start()
-
+	pAgent.engine.SetHandler(pAgent)
+	pAgent.engine.Start()
 }
-//func GetServerConnection2(conn net.Conn) {
-//	defer try.Catch()
-//	session:=scokets.NewSession( 0,conn,200)
-//	defer session.Close()
-//
-//	conn.SetReadDeadline(time.Now().Add(time.Millisecond))
-//	//连接之后的第一条消息，必须是验证身份，并且获得tid，sid
-//	n, err := conn.Read(session.ReadBuf)
-//	if err != nil {
-//		log.Logger.Error(conn.RemoteAddr().String(), " read server first msg error: ", err)
-//		return //当远程客户端连接发生错误（断开）后，终止此协程。
-//	}
-//	//buf := buffer[:n]
-//	logindata := &base.ServerLogin{}
-//	err = proto.Unmarshal(session.ReadBuf[:n], logindata)
-//	if err != nil {
-//		log.Logger.Error(conn.RemoteAddr().String(), "handleServerConnection proto.Unmarshal ServerLogin error: ", err)
-//		return //当远程客户端连接发生错误（断开）后，终止此协程。
-//	}
-//	//fmt.Println(logindata)
-//
-//	//登入验证
-//	if !logic.ServerLoginAuthentication(uint64(logindata.Tid), logindata.Password) {
-//		conn.Write(msg.CreateErrSvrMsgData(0, msg.Err_Nomoal, "服务注册认证失败"))
-//		log.Infof("server 身份验证失败 tid:%d,sid:%d",logindata.Tid,logindata.Sid)
-//		return
-//	}
-//
-//	serverid:=msg.EncodeServerID(logindata.Tid, logindata.Sid)
-//	//重复注册判断
-//	if G_ClientManager.ServerIsExists(serverid) {
-//		conn.Write(msg.CreateErrSvrMsgData(0, msg.Err_Nomoal, "服务重复注册"))
-//		log.Infof("server 重复注册 tid:%d,sid:%d",logindata.Tid,logindata.Sid)
-//		return
-//	}
-//
-//	//身份验证成功
-//	pAgenter:=NewServerAgent(session,logindata.Tid, logindata.Sid)
-//
-//	G_ClientManager.AddServerClient(pAgenter)
-//	defer G_ClientManager.RemoveServerClient(pAgenter)
-//
-//	loginResult := &base.LoginResult{}
-//	loginResult.Code = 0
-//	loginResult.Tid = uint32(config.App.TID)
-//	loginResult.Sid = uint32(config.App.SID)
-//	loginResult.Name = constant.GetServerIDName(config.App.TID, config.App.SID)
-//	ploginResult, _ := proto.Marshal(loginResult)
-//	conn.Write(send.CreateMsgToSvr(msg.Gate_SS_SvrLoginResult, ploginResult))
-//	log.Infof("服务注册成功，ServerID[%d] TID[%d] SID[%d]", serverid, logindata.Tid, logindata.Sid)
-//
-//	pAgenter.client.Start()
-//
-//}
-//
-
-func (s *ServerAgent)BeforeHandle(client *scokets.Client,len int,buffer []byte){
-	if len < msg.GetHeadLength() { //消息大小安全检测
-		log.Error("server msg len too samll")
+func (s *ServerAgent)CloseHandle(engine *sockets.Engine){
+	log.Debugf("server CloseHandle")
+	if engine.Data==nil{
 		return
 	}
-	//  消息结构  [uint8]+[uint64]+[uint32,uint32,uint32]
-	//  [uint8](后面8表示说明，0:后面是serverid 1:后面是userid)
-	//  [uint64](userid(8字节)或者0(4字节)+sid(2字节)+tid(2字节))
-	//  [uint32,uint32,uint32](mainid+sonid+len)+msg
-	s.SignHead.Decode(buffer)
 
-	switch s.SignHead.SignType {
-	case msg.Sign_serverid: //后8位是serverid
-		if s.SignHead.Tid == constant.TID_GateSvr {
-			msg.ParseHead(s.MsgHead,buffer)
-			fn:=ServerListener.GetHandleFunc(s.MsgHead.SonID)
-			if fn==nil{
-				log.Errorf("收到无效消息，sonid[%d]",s.MsgHead.SonID)
-				break
+	pSvrData:=engine.Data.(*ServerData)
+	log.Debugf("server CloseHandle tid[%d] sid[%d]",pSvrData.Tid,pSvrData.Sid)
+	//检查所有玩家，有连接再该服务器的都通知离开
+	G_ClientManager.PlayerMap.Range(func (k,v interface{})bool{
+		pClientEngine:=v.(*sockets.Engine)
+		pPlayerData :=pClientEngine.Data.(*PlayerData)
+		if sid,ok:= pPlayerData.SvrList[pSvrData.Tid];ok && sid==pSvrData.Sid{
+			delete(pPlayerData.SvrList,pSvrData.Tid)
+			pObj:=&gateProto.JoinQuitServerResult{
+				Code:   codes.Code_Success, //0成功
+				Tid:  	pSvrData.Tid,
 			}
-			buf :=scokets.GetByteFormPool()
-			//拷贝消息切片
-			copy(buf, buffer[msg.GetHeadLength():len])
-			fn(s.client,int(s.MsgHead.Len),buf)
-		} else if s.SignHead.Tid != 0 && s.SignHead.Sid != 0 {
-			sd:=s.client.Data.(*ServerData)
-			buf :=scokets.GetByteFormPool()
-			copy(buf, buffer[:len])
-			msg.ChangeSignHead(msg.Sign_serverid, sd.Serverid, buf)//将标记头改成来源
-
-			if !G_ClientManager.SendToServer(s.SignHead.SignId, buf[:len]) {
-				s.client.Session.Send(msg.CreateErrorMsg(msg.Err_MsgSendFail_ServerNoExist))
-			}
-		} else if s.SignHead.Tid != 0 && s.SignHead.Sid == 0 {
-			//给该类型服务器群发本消息
-
+			pClientEngine.SendData(msg.NewClientMessage(msg.ToUser_QuitSvrResult,pObj))
 		}
-	case msg.Sign_userid: //后8位是userid
-		//消息转发给客户端
-		buf :=scokets.GetByteFormPool()
-		n:=copy(buf, buffer[msg.GetSignHeadLength():len])
-		G_ClientManager.SendToPlayer(s.SignHead.SignId, buf[:n])
-	default: //发现非法协议
-		log.Errorln( "发现服务器的非法协议")
-		return
-	}
+		return true
+	})
+	//最后"服务在线列表"移除该服务器
+	G_ClientManager.RemoveServer(engine)
 }
 
-func (s *ServerAgent)CloseHandle(client *scokets.Client){
-	if client.Data==nil{
-		return
-	}
-	G_ClientManager.RemoveServerClient(client)
-}
+func (s *ServerAgent)BeforeHandle(client *sockets.Engine,n int,buffer []byte){
+	//需要捕获异常
+	defer try.Catch()
+	//log.Debugln("收到一条消息")
 
-
-func SvrRegister(client *scokets.Client,len int,buf []byte){
-	log.Debugln("收到服务注册消息")
-	obj := &base.ServerLogin{}
-	err := proto.Unmarshal(buf[:len], obj)
+	pMessage:=&base.Message{}
+	err := proto.Unmarshal(buffer, pMessage)
 	if err != nil {
-		client.Close()
+		log.Warnln("ServerAgent BeforeHandle is err:",err)
 		return
 	}
+
+	pForward := &base.Forward{}
+	if err = proto.Unmarshal(pMessage.Body,pForward );err!=nil{
+		log.Warnln("ServerAgent BeforeHandle is err2:",err)
+		return
+	}
+
+	if pForward.UserId>0 && pForward.ServerId==0{
+		//转发给指定客户端
+		pMessage.Body=pForward.Body
+		G_ClientManager.SendToPlayer(pForward.UserId, pMessage)
+	}else if pForward.UserId>0 && pForward.ServerId>0{
+		//发送给该用户连接着的某个svr，ServerId=tid，找该用户连接的tid
+		tid, _ := msg.DecodeServerID(pForward.ServerId)
+		uid := pForward.UserId
+		pForward.UserId = 0
+		pForward.ServerId = client.Data.(*ServerData).Serverid
+		pMessage.Body=msg.ProtoMarshal(pForward)
+		G_ClientManager.SendToPlayerOfTid(uid, tid,pMessage)
+	}else if pForward.UserId==0 && pForward.ServerId>0{
+		if pForward.ServerId==config.App.ServerID{ //发生给本服务的消息
+			fn:=ServerListener.GetHandleFunc(pMessage.MessageId)
+			if fn==nil{
+				log.Errorf("收到无效消息，msgId[%d]",pMessage.MessageId)
+				return
+			}
+			fn(s.engine,pForward.Body)
+		}else{
+			//发生消息给指定服务器，注意检验身份。解析出tid和sid，
+			tid,sid:=msg.DecodeServerID(pForward.ServerId)
+			targetId:=pForward.ServerId
+			pServerData:=client.Data.(*ServerData)
+			pForward.ServerId=pServerData.Serverid
+			pForward.UserId=0
+			pMessage.Body=msg.ProtoMarshal(pForward)
+
+			if tid>0 && sid==0{//如果tid>0,sid=0,则发送给所有给类型服务器
+				G_ClientManager.BroadcastToTid(tid,pMessage)
+			}else if tid>0 && sid>0{//如果tid>0,sid>0,发送给特定的一个服务器
+				G_ClientManager.SendToServer(targetId,pMessage)
+			}
+		}
+	}else if pForward.UserId==0 && pForward.ServerId==0{ //发送给所有用户
+		pMessage.Body=pForward.Body
+		G_ClientManager.BroadcastToPlayers(nil,pMessage)
+	}
+}
+
+func SvrRegister(engine *sockets.Engine,buf []byte){
+	pData := &gateProto.SvrRegisterReq{}
+	err := proto.Unmarshal(buf, pData)
+	if err != nil {
+		engine.Close()
+		return
+	}
+	log.Infof("收到服务注册消息tid[%d] sid[%d] svrType[%d]",pData.Tid,pData.Sid,pData.SvrType)
 
 	//登入验证
-	if !logic.ServerLoginAuthentication(uint64(obj.Tid), obj.Password) {
-		client.SendData(msg.CreateErrSvrMsgData(0, msg.Err_Nomoal, "服务注册认证失败"))
-		log.Infof("server 身份验证失败 tid:%d,sid:%d",obj.Tid,obj.Sid)
-		client.Close()
+	if !logic.ServerLoginAuthentication(uint64(pData.Tid), pData.Password) {
+		log.Infof("server 身份验证失败 tid:%d,sid:%d", pData.Tid, pData.Sid)
+
+		pObj:=&gateProto.SvrRegisterResult{
+			Code: codes.Code_SvrRegister_AuthFail,
+			Tid:  uint32(config.App.TID),
+			Sid:  uint32(config.App.SID),
+		}
+		engine.SyncSendData(msg.NewMessage(msg.CommonSvrMsg_SvrRegisterResult,0,config.App.ServerID,pObj))
+		engine.Close()
 		return
 	}
 
-	serverId:=msg.EncodeServerID(obj.Tid, obj.Sid)
+	serverId:=msg.EncodeServerID(pData.Tid, pData.Sid)
 	//重复注册判断
 	if G_ClientManager.ServerIsExists(serverId) {
-		client.SendData(msg.CreateErrSvrMsgData(0, msg.Err_Nomoal, "服务重复注册"))
-		log.Infof("server 重复注册 tid:%d,sid:%d",obj.Tid,obj.Sid)
-		client.Close()
+		log.Infof("server 重复注册 tid:%d,sid:%d", pData.Tid, pData.Sid)
+		pObj:=&gateProto.SvrRegisterResult{
+			Code: codes.Code_SvrRegister_ExistedFail,
+			Tid:  uint32(config.App.TID),
+			Sid:  uint32(config.App.SID),
+		}
+		engine.SyncSendData(msg.NewMessage(msg.CommonSvrMsg_SvrRegisterResult,0,config.App.ServerID,pObj))
+		engine.Close()
 		return
 	}
 
 	//身份验证成功========
-	svrData:=&ServerData{
-		Tid: obj.Tid,
-		Sid: obj.Sid,
+	engine.Data=&ServerData{
+		Tid:      pData.Tid,
+		Sid:      pData.Sid,
 		Serverid: serverId,
 	}
-	client.Data=svrData
+	G_ClientManager.AddServer(engine)
 
-	G_ClientManager.AddServerClient(client)
+	pObj:=&gateProto.SvrRegisterResult{
+		Code: codes.Code_Success,
+		Tid:  uint32(config.App.TID),
+		Sid:  uint32(config.App.SID),
+		Name: constant.GetServerIDName(config.App.TID, config.App.SID),
+	}
 
-
-	loginResult := &base.LoginResult{}
-	loginResult.Code = 0
-	loginResult.Tid = uint32(config.App.TID)
-	loginResult.Sid = uint32(config.App.SID)
-	loginResult.Name = constant.GetServerIDName(config.App.TID, config.App.SID)
-	ploginResult, _ := proto.Marshal(loginResult)
-	client.SendData(send.CreateMsgToSvr(msg.Gate_SS_SvrLoginResult, ploginResult))
-	log.Infof("服务注册成功，ServerID[%d] TID[%d] SID[%d]", serverId, obj.Tid, obj.Sid)
-
+	engine.SendData(msg.NewMessage(msg.CommonSvrMsg_SvrRegisterResult,0,config.App.ServerID,pObj))
+	log.Infof("服务注册成功，ServerID[%d] TID[%d] SID[%d]", serverId, pData.Tid, pData.Sid)
 	return
 }
 

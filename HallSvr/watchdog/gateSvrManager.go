@@ -3,13 +3,14 @@ package watchdog
 //管家
 import (
 	"Common/constant"
-	"Common/kernel/go-scoket/scokets"
+	"Common/kernel/go-scoket/sockets"
 	"Common/log"
 	"Common/msg"
 	"Common/proto/base"
+	"Common/proto/gateProto"
 	"Common/svrfind"
+	"Common/try"
 	"HallSvr/config"
-	"HallSvr/core/send"
 	"fmt"
 	"strconv"
 	"time"
@@ -17,101 +18,77 @@ import (
 	"github.com/golang/protobuf/proto"
 )
 
+func InitHandleFunc(p *sockets.Connector){
+	p.AddHandleFuc(msg.CommonSvrMsg_SvrRegisterResult, RegisterGateResult)
+	p.AddHandleFuc(msg.CommonSvrMsg_UserJoin, UserJoin)
+	p.AddHandleFuc(msg.CommonSvrMsg_UserQuit, UserQuit)
+	p.AddHandleFuc(msg.CommonSvrMsg_UserOffline, UserOffline)
 
-
-type HandleFunction struct {
-	HandleFuncMap  map[uint64]func(srcType uint8,srcId uint64,s *scokets.Connector,buf []byte)
-}
-var m_handleFunction *HandleFunction=new(HandleFunction)
-func (c *HandleFunction)GetHandleFunc(id uint64)func(srcType uint8,srcId uint64,s *scokets.Connector,buf []byte){
-	if c.HandleFuncMap==nil{
-		return nil
-	}
-	fn, has := c.HandleFuncMap[id]
-	if has {
-		return fn
-	}
-	return nil
-}
-func (c *HandleFunction)AddHandleFuc(id uint64,fn func(srcType uint8,srcId uint64,s *scokets.Connector,buf []byte)){
-	if c.HandleFuncMap==nil{
-		c.HandleFuncMap= make(map[uint64]func(srcType uint8,srcId uint64,s *scokets.Connector,buf []byte))
-	}
-	c.HandleFuncMap[id]=fn
-}
-
-func InitHandleFunc(){
-	m_handleFunction.AddHandleFuc(msg.MergeMsgID(msg.MID_Gate,msg.Gate_SS_SvrLoginResult),DoLoginGateSvr)
-    m_handleFunction.AddHandleFuc(msg.MergeMsgID(msg.MID_Gate,msg.Gate_SS_ClientJionReq),DoPlayerJionReq)
-	m_handleFunction.AddHandleFuc(msg.MergeMsgID(msg.MID_Gate,msg.Gate_SS_ClientLeaveReq),DoPlayerLeaveReq)
-
-	m_handleFunction.AddHandleFuc(msg.MergeMsgID(msg.MID_Test,msg.Test_1),DoPlayerTestMsg)
 
 }
 
-type LogicHandler struct {
-	HandleFunc  *HandleFunction
-	connector  *scokets.Connector
-	SignHead *msg.HeadSign
-	MsgHead  *msg.HeadProto
-	bLogin   bool
-	loginTick *time.Timer
+type ServerData struct {
+	Tid      uint32 //服务类型id
+	Sid      uint32 //同服务类型下的唯一标识id
+	Serverid uint64 //0+0+sid+tid 位运算获得
+	SvrType  uint32
+}
+type LogicAgent struct {
+	connector  *sockets.Connector
 }
 
-func NewLogicHandler()*LogicHandler{
-	return &LogicHandler{
-		HandleFunc:m_handleFunction,
+func NewLogicHandler()*LogicAgent {
+	return &LogicAgent{
 		connector:nil,
-		SignHead: new(msg.HeadSign),
-		MsgHead: new(msg.HeadProto),
-		bLogin:false,
-		loginTick:nil,
 	}
 }
 
-func (c *LogicHandler)BeforeHandle(client *scokets.Client,len int,buffer []byte){
-	if len < msg.GetHeadLength() { //消息大小安全检测
-		log.Error("msg len too samll")
+func (c *LogicAgent)BeforeHandle(engine *sockets.Engine,len int,buffer []byte){
+	defer try.Catch()
+	pMessage:=&base.Message{}
+	err := proto.Unmarshal(buffer, pMessage)
+	if err != nil {
+		log.Warnln(" BeforeHandle is err:",err)
 		return
 	}
-	if msg.ParseSign(c.SignHead,buffer) && msg.ParseHead(c.MsgHead,buffer){
-		if  fn:=c.HandleFunc.GetHandleFunc(msg.MergeMsgID(c.MsgHead.MainID,c.MsgHead.SonID));fn!=nil{
-			buf:=scokets.GetByteFormPool()
-			copy(buf, buffer[msg.GetHeadLength():len])
-			fn(c.SignHead.SignType,c.SignHead.SignId,c.connector,buf)
-		}
+    fn:=c.connector.Handler.GetHandleFunc(pMessage.MessageId)
+    if fn==nil{
+		log.Errorln(" BeforeHandle messsgeId  no found:",pMessage.MessageId)
+		return
 	}
+	fn(engine,pMessage.Body)
 }
 
-func (c *LogicHandler)CloseHandle(client *scokets.Client){
-
+func (c *LogicAgent)CloseHandle(engine *sockets.Engine){
+	if engine==nil || engine.Data==nil{
+		return
+	}
+	pServerData:=engine.Data.(*ServerData)
+	ServerList.Remove(pServerData.Serverid)
+	//遍历在线用户列表，来自该gate服的都标记成短线或者直接清理
 }
 
-//连接网关服
+// ConnectGateSvrs 连接网关服
 func ConnectGateSvrs() {
-	//登入验证
-	logindata := &base.ServerLogin{
-		Tid:      uint32(config.App.TID),
-		Sid:      uint32(config.App.SID),
-		Password: "123",
-	}
-
-	
 	for {
-		gatelist := svrfind.G_ServerRegister.GetSvr(constant.GetServerName(constant.TID_GateSvr), constant.GetServerTag(constant.TID_GateSvr))
-		for _, v := range gatelist {
+		//先清理没完成注册的连接
+		ServerList.ClearRegisterTimeOut()
+
+
+		//检查没有连接的gate，并且连接注册
+		gateList := svrfind.G_ServerRegister.GetSvr(constant.GetServerName(constant.TID_GateSvr), constant.GetServerTag(constant.TID_GateSvr))
+		for _, v := range gateList {
 			//fmt.Println(k, "  ", v.Service.Address)
 			//fmt.Println(k, "  ", v.Service.Port)
 			//fmt.Printf(" %d:%+v \n", k, v.Service)
 
 			if addr, ok := v.Service.TaggedAddresses["server"]; ok {
-				strserverid, ok := v.Service.Meta["ServerID"]
+				str, ok := v.Service.Meta["ServerID"]
 				if !ok {
 					log.Errorf("网关服未正确注册 serverid")
 					continue
 				}
-
-				serverid, err := strconv.ParseUint(strserverid, 10, 64) //strconv.Atoi(strserverid)
+				serverid, err := strconv.ParseUint(str, 10, 64) //strconv.Atoi(strserverid)
 				if err != nil {
 					log.Errorf("网关服未正确注册2 serverid ")
 					continue
@@ -119,26 +96,28 @@ func ConnectGateSvrs() {
 
 				if ServerList.IsExists(serverid) {
 					//如果登入失败的，则删除
-
 					continue
 				}
 
-				pData, _ := proto.Marshal(logindata)
-
-				logicHandler:=NewLogicHandler()
-				connector:=scokets.NewScoketConnector(fmt.Sprintf("%s:%d", addr.Address, addr.Port),
-					logicHandler,time.Second)
+				pLogic:=NewLogicHandler()
+				connector:=sockets.NewConnector(fmt.Sprintf("%s:%d", addr.Address, addr.Port),
+					pLogic,time.Second)
 				if connector.StartConnect(){
-					log.Infof("网关服连接[addr:%s]成功", connector.GetAddrInfo())
-					logicHandler.connector=connector
+					log.Infof("网关服连接[addr:%s]成功\n", connector.GetAddrInfo())
+					pLogic.connector=connector
+					ServerList.Add(serverid,connector.Engine)
+					InitHandleFunc(connector)
 
-					//agenter保存到队列
-					ServerList.Add(serverid,logicHandler)
-					connector.SendData(send.CreateMsgToServerID(serverid, msg.MID_Gate, msg.SS_SvrRegisterGateSvr, pData))
-					//connector.SendData(pData)
+					pObj:=&gateProto.SvrRegisterReq{
+						Tid:      uint32(config.App.TID),
+						Sid:      uint32(config.App.SID),
+						Password: "123",
+						SvrType:  11,
+					}
+					connector.SendData(NewMsgToSvr(serverid,msg.ToGateSvr_SvrRegister,pObj))
 				}
 			}
 		}
-		time.Sleep(30 * time.Second)
+		time.Sleep(10 * time.Second)
 	}
 }

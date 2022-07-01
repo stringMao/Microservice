@@ -15,6 +15,8 @@ import (
 
 //Logger 全局日志对象
 var Logger = logrus.New()
+var withFunc=false
+var withFile=false
 
 func init() {
 	//Logger.SetFormatter(&logrus.JSONFormatter{})
@@ -22,17 +24,33 @@ func init() {
 	Logger.AddHook(newLfsHook(dirPath+"logs/"))
 }
 
-//Setup ..
-func Setup(lv string) {
+////Setup ..
+//func Setup(lv string) {
+//	//更新日志设置
+//	logrusLogLevel, err := logrus.ParseLevel(lv)
+//	if err != nil {
+//		Logger.Fatalln("app.ini of log-lvevl is err:", err)
+//	}
+//	Logger.SetLevel(logrusLogLevel) //设置等级
+//}
+
+//Reset 重置日志配置
+func Reset(lv string,withfunc,withfile bool){
 	//更新日志设置
-	logrusLogLevel, err := logrus.ParseLevel(lv)
+	loglv, err := logrus.ParseLevel(lv)
 	if err != nil {
-		Logger.Fatalln("app.ini of log-lvevl is err:", err)
+		Logger.WithFields(logrus.Fields{
+			"err": err,
+			"lv":  lv,
+		}).Warn("log-level is err")
+	}else{
+		Logger.SetLevel(loglv)
 	}
-	Logger.SetLevel(logrusLogLevel) //设置等级
+	withFunc=withfunc
+	withFile=withfile
 }
 
-// 设置日志文件切割及软链接
+//newLfsHook 设置日志文件切割及软链接
 func newLfsHook(filepath string) logrus.Hook {
 	var err error
 
@@ -131,13 +149,17 @@ func newLfsHook(filepath string) logrus.Hook {
 	Logger.SetFormatter(&logrus.TextFormatter{
 		//ForceQuote:true,    //键值对加引号
 		TimestampFormat:"2006-01-02 15:04:05",  //时间格式
-		//FullTimestamp:true,
+		FullTimestamp:true,
 		CallerPrettyfier: func(frame *runtime.Frame) (function string, file string) {
-			//处理文件名
-			fileName := path.Base(frame.File)
-			fileName+= fmt.Sprintf(" %d",frame.Line)
+			return "",""  //关闭日志库 自带的函数名和代码行数 打印
+			////处理文件名
+			//fileName := path.Base(frame.File)
+			//fileName+= fmt.Sprintf(" %d",frame.Line)
+			////日志带上函数名和调用文件行号
 			//return frame.Function, fileName
-			return "", fileName
+			////日志只带上调用文件行号
+			////return "", fileName
+
 		},
 	})
     //json格式的日志
@@ -159,6 +181,24 @@ func newLfsHook(filepath string) logrus.Hook {
 	return lfsHook
 }
 
+func getCaller()(str string) {
+	if withFunc==false && withFile==false{
+		return
+	}
+	pc, file, lineNo, ok := runtime.Caller(2)
+	if !ok{
+		return
+	}
+	if withFunc{
+		str+="func="
+		str+=runtime.FuncForPC(pc).Name()
+	}
+	if withFile{
+		str+=" file="
+		str+=fmt.Sprintf("%s:%d",path.Base(file),lineNo)
+	}
+	return
+}
 //Fields ..
 type Fields map[string]interface{}
 
@@ -173,63 +213,118 @@ func WithField(key string, value interface{}) *logrus.Entry {
 }
 
 func Debug(args ...interface{}) {
+	if extra:=getCaller() ; extra !=""{
+		args=append(args,extra)
+	}
 	Logger.Debug(args...)
 }
 
 func Debugln(args ...interface{}) {
+	if extra:=getCaller() ; extra !=""{
+		args=append(args,extra)
+	}
 	Logger.Debugln(args...)
 }
 
 func Debugf(format string, args ...interface{}) {
+	if extra:=getCaller() ; extra !=""{
+		args=append(args,extra)
+	}
 	Logger.Debugf(format, args...)
 }
 
 func Info(args ...interface{}) {
+	if extra:=getCaller() ; extra !=""{
+		args=append(args,extra)
+	}
 	Logger.Info(args...)
 }
 func Infoln(args ...interface{}) {
+	if extra:=getCaller() ; extra !=""{
+		args=append(args,extra)
+	}
 	Logger.Infoln(args...)
 }
 func Infof(format string, args ...interface{}) {
+	if extra:=getCaller() ; extra !=""{
+		args=append(args,extra)
+	}
+
 	Logger.Infof(format, args...)
 }
 
 func Warn(args ...interface{}) {
+	if extra:=getCaller() ; extra !=""{
+		args=append(args,extra)
+	}
 	Logger.Warn(args...)
 }
 func Warnln(args ...interface{}) {
+	if extra:=getCaller() ; extra !=""{
+		args=append(args,extra)
+	}
 	Logger.Warnln(args...)
 }
 func Warnf(format string, args ...interface{}) {
+	if extra:=getCaller() ; extra !=""{
+		args=append(args,extra)
+	}
 	Logger.Warnf(format, args...)
 }
 
 func Error(args ...interface{}) {
+	if extra:=getCaller() ; extra !=""{
+		args=append(args,extra)
+	}
 	Logger.Error(args...)
 }
 func Errorln(args ...interface{}) {
+	if extra:=getCaller() ; extra !=""{
+		args=append(args,extra)
+	}
 	Logger.Errorln(args...)
 }
 func Errorf(format string, args ...interface{}) {
+	if extra:=getCaller() ; extra !=""{
+		args=append(args,extra)
+	}
 	Logger.Errorf(format, args...)
 }
 func Fatal(args ...interface{}) {
+	if extra:=getCaller() ; extra !=""{
+		args=append(args,extra)
+	}
 	Logger.Fatal(args...)
 }
 func Fatalln(args ...interface{}) {
+	if extra:=getCaller() ; extra !=""{
+		args=append(args,extra)
+	}
 	Logger.Fatalln(args...)
 }
 func Fatalf(format string, args ...interface{}) {
+	if extra:=getCaller() ; extra !=""{
+		args=append(args,extra)
+	}
 	Logger.Fatalf(format, args...)
 }
 
 func Panic(args ...interface{}) {
+	if extra:=getCaller() ; extra !=""{
+		args=append(args,extra)
+	}
 	Logger.Panic(args...)
 }
 func Panicln(args ...interface{}) {
+	if extra:=getCaller() ; extra !=""{
+		args=append(args,extra)
+	}
 	Logger.Panicln(args...)
 }
 func Panicf(format string, args ...interface{}) {
+	if extra:=getCaller() ; extra !=""{
+		args=append(args,extra)
+	}
 	Logger.Panicf(format, args...)
 }
 

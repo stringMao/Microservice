@@ -65,6 +65,7 @@ go build
 [log]
 level = debug
 [webmanager]
+ip=127.0.0.1
 port =8092
 # 服务发现consul的地址
 consuladdr = 127.0.0.1:8500
@@ -102,9 +103,8 @@ maxidleconns=10
 ```
 
 ## 协议结构
-### to server msg
-![RUNOOB 图标](https://github.com/stringMao/SrcRepository/blob/main/%E5%BE%AE%E6%9C%8D%E5%8A%A1/toServerMsg.jpg)
+###  msg struct
+![RUNOOB 图标](https://github.com/stringMao/SrcRepository/blob/main/%E5%BE%AE%E6%9C%8D%E5%8A%A1/msgStruct.png)
 
-### to client msg
-![RUNOOB 图标](https://github.com/stringMao/SrcRepository/blob/main/%E5%BE%AE%E6%9C%8D%E5%8A%A1/toClientMsg.jpg)
+
 

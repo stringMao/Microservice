@@ -4,9 +4,11 @@ import "fmt"
 
 //TID 分配
 const (
-	TID_LoginSvr = 1 //登入服tid
-	TID_GateSvr  = 2 //网关服tid
-	TID_HallSvr  = 3 //大厅服tid
+	TID_Client = 0  //客户端消息占用
+	TID_Common = 1  //服务端间公共消息占用
+	TID_LoginSvr = 10 //登入服tid
+	TID_GateSvr  = 11 //网关服tid
+	TID_HallSvr  = 12 //大厅服tid
 )
 
 //GetServerName 获得服务name

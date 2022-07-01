@@ -31,6 +31,8 @@ func main() {
 		log.Debugln(http.ListenAndServe(":8060", nil))
 	}()
 	//defer ServerEnd()
+	//log.Logger.Debugln("1111111")
+	//log.Debugln("22222222")
 	//mysql连接
 	dbmanager.ConnectDB_LoginSvr()
 	dbmanager.ConnectDB_Player()

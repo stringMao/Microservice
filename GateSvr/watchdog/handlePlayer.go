@@ -2,148 +2,155 @@ package watchdog
 
 import (
 	"Common/constant"
-	"Common/kernel/go-scoket/scokets"
+	"Common/kernel/go-scoket/sockets"
 	"Common/log"
 	"Common/msg"
 	"Common/proto/base"
-	"Common/proto/gatesvrproto"
+	"Common/proto/codes"
+	"Common/proto/gateProto"
+	"Common/try"
+	"GateSvr/config"
 	"GateSvr/logic"
 	"github.com/golang/protobuf/proto"
-	"time"
 )
 
 type PlayerData struct{
 	UserId      uint64
+	//TODO  成员改成结构体，保存tid，sid，serverid等详细信息
 	SvrList     map[uint32]uint32
 }
 type PlayerAgent struct {
-	SignHead *msg.HeadSign
-	MsgHead  *msg.HeadProto
-	client *scokets.Client
+	//SignHead *msg.HeadSign
+	//MsgHead  *msg.HeadProto
+	engine *sockets.Engine
 }
+//func (s *PlayerAgent) JoinServer(tid,sid uint32){
+//	data:=s.engine.Data.(*PlayerData)
+//	if data!=nil && data.SvrList!=nil {
+//		data.SvrList[tid] = sid
+//	}
+//}
+//func (s *PlayerAgent) QuitServer(tid uint32){
+//	data:=s.engine.Data.(*PlayerData)
+//	if data!=nil && data.SvrList!=nil {
+//		delete(data.SvrList, tid)
+//	}
+//}
 
-func NewPlayerAgent(session *scokets.Session,userid uint64)*PlayerAgent{
-	playerdata:=&PlayerData{
-		UserId: userid,
-		SvrList: make(map[uint32]uint32,10),
+
+//GetPlayerConnection 收到一个客户端连接
+func GetPlayerConnection(engine *sockets.Engine) {
+	pAgent:= &PlayerAgent{
+		engine: engine,
+		//SignHead: new(msg.HeadSign),
+		//MsgHead:  new(msg.HeadProto),
 	}
-	session.SetID(userid)
-
-	agent:= &PlayerAgent{
-		client: scokets.NewClient(scokets.ServerConnect,session,playerdata,4*time.Second),
-		SignHead: new(msg.HeadSign),
-		MsgHead: new(msg.HeadProto),
-	}
-	agent.client.SetHandler(agent)
-
-	return agent
+	pAgent.engine.SetHandler(pAgent)
+	pAgent.engine.Start()
 }
-
-//handleClientConnection 客户端连接请求处理
-func GetPlayerConnection(client *scokets.Client) {
-	agent:= &PlayerAgent{
-		client: client,
-		SignHead: new(msg.HeadSign),
-		MsgHead: new(msg.HeadProto),
-	}
-	agent.client.SetHandler(agent)
-	agent.client.Start()
-}
-
-func (s *PlayerAgent)BeforeHandle(client *scokets.Client,len int,buffer []byte){
-	if len < msg.GetHeadLength() { //消息大小安全检测
-		log.Warnln("player msg len too samll")
+func (s *PlayerAgent)CloseHandle(engine *sockets.Engine){
+	if engine.Data==nil{
 		return
 	}
-	s.SignHead.Decode(buffer)
+	//通知该玩家所在的 服务器 用户离开
+	pPlayerData:=engine.Data.(*PlayerData)
+	for k,v:=range pPlayerData.SvrList{
+		pObj := &gateProto.UserJoinQuit{Userid: pPlayerData.UserId}
+		G_ClientManager.SendToServer2(msg.EncodeServerID(k,v),
+			msg.NewMessage(msg.CommonSvrMsg_UserOffline,0,config.App.ServerID,pObj))
+	}
+	//用户在线列表里删除用户
+	G_ClientManager.RemovePlayer(engine)
+}
 
-	switch s.SignHead.SignType {
-	case msg.Sign_serverid: //后8位是serverid
-		if s.SignHead.Tid == constant.TID_GateSvr { //发给本服务器
-			msg.ParseHead(s.MsgHead,buffer)
-			fn:= PlayerListener.GetHandleFunc(s.MsgHead.SonID)
-			if fn!=nil{
-				buf :=scokets.GetByteFormPool()
-				//拷贝消息切片
-				copy(buf, buffer[msg.GetHeadLength():len])
-				fn(s.client,int(s.MsgHead.Len),buf)
-			}
-		} else if s.SignHead.Tid != 0 && s.SignHead.Sid == 0 {
-			sd:=s.client.Data.(*PlayerData)
-			if sid,ok:=sd.SvrList[s.SignHead.Tid];ok{
-				buf :=scokets.GetByteFormPool()
-				copy(buf, buffer[:len])
-				msg.ChangeSignHead(msg.Sign_userid, sd.UserId, buf)//将标记头改成来源
-				serverId:=msg.EncodeServerID(s.SignHead.Tid, sid)
-				if G_ClientManager.SendToServer(serverId, buf[:len]) {
-					break
-				}
-			}
-			s.client.Session.Send(msg.CreateErrorMsg(msg.Err_MsgSendFail_ServerNoExist))
+func (s *PlayerAgent)BeforeHandle(client *sockets.Engine,len int,buffer []byte){
+	//====这里需要捕获异常
+	defer try.Catch()
+	//
+	pMessage := &base.Message{}
+	if proto.Unmarshal(buffer, pMessage) != nil {
+		log.Warnln("ServerAgent BeforeHandle is err")
+		return
+	}
+    msgType:=msg.ParseMessageID(pMessage.MessageId)
 
-		} else if s.SignHead.Tid != 0 && s.SignHead.Sid != 0 {
-			//允不允许客户端指向发送指定的服务，可能存在风险
+	switch  msgType{
+	case constant.TID_GateSvr:
+		//同一个携程的同步处理，所以不需要new新的buf拷贝消息内容
+		fn:= PlayerListener.GetHandleFunc(pMessage.MessageId)
+		if fn!=nil{
+			fn(s.engine, pMessage.Body)
 		}
-		//fmt.Print("ss")
-	case msg.Sign_userid: //后8位是userid
-		//userid := binary.BigEndian.Uint64(buffer[1:9])
-		log.Error( "客户端不能发消息给其他客户端")
-		return
-	default: //发现非法协议
-		log.Logger.Error("发现客户端的非法协议")
-		return
+	default:
+		if msgType==0 {
+			return
+		}
+		playerData:=s.engine.Data.(*PlayerData)
+		if sid,ok:=playerData.SvrList[uint32(msgType)];ok{
+			//协议再包一层
+			serverId:=msg.EncodeServerID(uint32(msgType), sid)
+			pb:=&base.Forward{
+				UserId:   playerData.UserId,
+				ServerId: 0,
+				Body:     pMessage.Body,
+			}
+			pMessage.Body=msg.ProtoMarshal(pb)
+			if G_ClientManager.SendToServer(serverId, pMessage) {
+				break
+			}
+		}
 	}
-}
-func (s *PlayerAgent)CloseHandle(client *scokets.Client){
-	if client.Data==nil{
-		return
-	}
-	G_ClientManager.RemovePlayerClient(client)
+
 }
 
-func playerLogin(client *scokets.Client,len int,buf []byte) {
-	obj := &base.ClientLogin{}
-	err := proto.Unmarshal(buf[:len], obj)
+
+func UserLogin(engine *sockets.Engine,buf []byte) {
+	pData := &gateProto.UserLoginReq{}
+	err := proto.Unmarshal(buf, pData)
 	if err != nil {
 		return
 	}
-
+	log.Infof("收到玩家登入消息 userid[%d] token[%s] ",pData.Userid,pData.Token)
 	//登入验证
-	if logic.UserLogin(obj.Userid, obj.Token) != 0 {
+	if logic.UserLogin(pData.Userid, pData.Token) != 0 {
 		//登入验证失败
-		log.Debugf("玩家登入验证失败 uid[%d],token[%s]",obj.Userid, obj.Token)
-		client.SendData(msg.CreateErrorMsg(msg.Err_Login_AuthenticationFail))
-		client.Close()
+		log.Debugf("玩家登入验证失败 uid[%d],token[%s]", pData.Userid, pData.Token)
+		pObj:=&gateProto.UserLoginResult{
+			Code: codes.Code_LoginGateSvrAuthFail,
+		}
+		engine.SyncSendData(msg.NewClientMessage(msg.ToUser_GateLoginResult,pObj))
+		engine.Close()
 		return
 	}
 	//顶号
-	if !G_ClientManager.PlayerIsExists(obj.Userid) {
+	if G_ClientManager.PlayerIsExists(pData.Userid) {
 		//顶号处理
 
 		//顶号失败
-		client.SendData(msg.CreateErrorMsg(msg.Err_Login_AuthenticationFail))
+		pObj:=&gateProto.UserLoginResult{
+			Code: codes.Code_LoginGateSvrReplaceFail,
+		}
+		engine.SyncSendData(msg.NewClientMessage(msg.ToUser_GateLoginResult,pObj))
+		engine.Close()
 		return
 	}
-	playerData :=&PlayerData{
-		UserId: obj.Userid,
+	//用户数据保存
+	engine.Data= &PlayerData{
+		UserId:  pData.Userid,
 		SvrList: make(map[uint32]uint32,10),
 	}
-	client.Data= playerData
-	G_ClientManager.AddPlayerClient(client)
+	G_ClientManager.AddPlayer(engine)
 
 	//返回结果
-	tPro := &gatesvrproto.PlayerInfo{
+	pObj:=&gateProto.UserLoginResult{
+		Code: codes.Code_Success,
 	}
-	dPro, _ := proto.Marshal(tPro)
-	client.SendData(msg.CreateWholeProtoData(msg.MID_Gate, msg.SC_PlayerLoginGateSvr, dPro))
+	engine.SendData(msg.NewClientMessage(msg.ToUser_GateLoginResult,pObj))
 }
 
 
 
-func (s *PlayerAgent)JionServer(tid,sid uint32){
-	data:=s.client.Data.(PlayerData)
-	data.SvrList[tid]=sid
-}
+
 
 
 

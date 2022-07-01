@@ -1,4 +1,4 @@
-package bytepool
+package kernel
 
 
 type BytePoolCap struct {

@@ -262,3 +262,17 @@ func GetHeadOfProto(b []byte) *HeadProto {
 func MergeMsgID(mainid,sonid uint32)uint64{
 	return  uint64(mainid)<<32+uint64(sonid)
 }
+
+
+//===========================================================
+const MessageIdLen = 4
+type Message struct {
+	//消息ID
+	ID uint32
+	//消息内容
+	ByteBody []byte
+}
+
+
+
+//====================================
