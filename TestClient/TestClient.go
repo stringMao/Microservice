@@ -5,6 +5,7 @@ import (
 	"Common/kernel/go-scoket/sockets"
 	"Common/log"
 	"Common/msg"
+	"Common/proto/base"
 	"Common/proto/codes"
 	"Common/proto/gateProto"
 	"TestClient/agent"
@@ -30,7 +31,7 @@ func main() {
 	connector.AddHandleFuc(msg.ToUser_JoinSvrResult,SvrJoinResult)
 	connector.AddHandleFuc(msg.ToUser_QuitSvrResult,SvrQuitResult)
 	//connector.AddHandleFuc(msg.ToUser_QuitSvrResult,GateJoinResult)
-
+	connector.AddHandleFuc(msg.ToUser_Test,SvrTestResult)
 
 	//发送登入消息
 	pObj := &gateProto.UserLoginReq{
@@ -77,10 +78,21 @@ func SvrJoinResult(engine *sockets.Engine,buf []byte)  {
 
 	//
 	//登入大厅请求
-	pObj := &gateProto.JoinQuitServerReq{
-		Tid:    constant.TID_HallSvr,
+	//pObj := &gateProto.JoinQuitServerReq{
+	//	Tid:    constant.TID_HallSvr,
+	//}
+	//engine.SendData(msg.NewClientMessage(msg.ToGateSvr_UserQuitSvrReq,pObj))
+    i:=0
+	for i<1000  {
+		i++
+		pObj := &base.ReplyResult{
+			Code: int32(i),
+			Txt:  "测试消息",
+		}
+		engine.SendData(msg.NewClientMessage(msg.ToHallSvr_Test,pObj))
+		time.Sleep(10*time.Microsecond)
 	}
-	engine.SendData(msg.NewClientMessage(msg.ToGateSvr_UserQuitSvrReq,pObj))
+
 
 }
 
@@ -97,6 +109,18 @@ func SvrQuitResult(engine *sockets.Engine,buf []byte)  {
 	log.Debugf("svr[%d] Quit success ",pData.Tid)
 }
 
+func SvrTestResult(engine *sockets.Engine,buf []byte){
+
+	pData:=&base.ReplyResult{}
+	err := proto.Unmarshal(buf, pData)
+	if err != nil {
+		return
+	}
+	log.Debugf("TestMessage； %s:%d",pData.Txt,pData.Code)
+	return
+	pData.Code++
+	engine.SendData(msg.NewClientMessage(msg.ToHallSvr_Test,pData))
+}
 
 //func protoEncodePrint(buf []byte, n uint32) {
 //	head := &msg.HeadProto{}

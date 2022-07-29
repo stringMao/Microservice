@@ -68,8 +68,8 @@ func (s *PlayerAgent)BeforeHandle(client *sockets.Engine,len int,buffer []byte){
 	defer try.Catch()
 	//
 	pMessage := &base.Message{}
-	if proto.Unmarshal(buffer, pMessage) != nil {
-		log.Warnln("ServerAgent BeforeHandle is err")
+	if err:=proto.Unmarshal(buffer, pMessage);err != nil {
+		log.Warnf("PlayerAgent BeforeHandle len[%d] is err:%s",len,err.Error())
 		return
 	}
     msgType:=msg.ParseMessageID(pMessage.MessageId)

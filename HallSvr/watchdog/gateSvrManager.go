@@ -23,6 +23,7 @@ func InitHandleFunc(p *sockets.Connector){
 	p.AddHandleFuc(msg.CommonSvrMsg_UserJoin, UserJoin)
 	p.AddHandleFuc(msg.CommonSvrMsg_UserQuit, UserQuit)
 	p.AddHandleFuc(msg.CommonSvrMsg_UserOffline, UserOffline)
+	p.AddHandleFuc(msg.ToHallSvr_Test, TestMessage)
 
 
 }

@@ -1,7 +1,7 @@
 package sockets
 
 import (
-	"Common/kernel"
+	//"Common/kernel"
 	"Common/log"
 	"Common/try"
 	"errors"
@@ -99,10 +99,10 @@ func (c *Engine)Start(){
 		if c.role==ServerConnect && c.Heart > 0{
 			c.Session.Conn.SetReadDeadline(time.Now().Add(c.Heart)) //借此检测心跳包
 		}
-
+		//c.Session.ReadBuf.Data=c.Session.ReadBuf.Data[0:0]
 		n,err := c.Session.Conn.Read(c.Session.ReadBuf.Data)            //读取客户端传来的内容
 		if err != nil {
-			log.Debug(c.Session.Addr, " connet is close: ", err)
+			log.Debug(c.Session.Addr, " connect is close: ", err)
 			return //当远程客户端连接发生错误（断开）后，终止此协程。
 		}
 		//特殊包-心跳包过滤  消息结构[uint8]=200
@@ -116,26 +116,35 @@ func (c *Engine)Start(){
 			if c.Session.TempBuf!=nil{
 				c.Session.ReadBuf.Data=append(c.Session.TempBuf,c.Session.ReadBuf.Data[:n]...)
 				n=len(c.Session.ReadBuf.Data)
+				c.Session.TempBuf = nil
 			}
-			c.Session.TempBuf,err=unpack(c.Session.ReadBuf,n)
-			if err==nil && c.Session.TempBuf==nil{
-				c.handleClient.BeforeHandle(c,n-message_head_size,c.Session.ReadBuf.Data[message_head_size:n])
-			}
+			c.unpack(n)
 		}
 	}
 }
 
 
-func unpack(buf *kernel.ByteBuf,length int) ([]byte,error) {
+func (c *Engine)unpack(length int)error {
 	if length < message_head_size{
-		return nil,errors.New("协议太小")
+		return errors.New("协议太小")
 	}
-	buf.ResetReadIndex(0)
-    msgLen:=int(buf.ReadUint32BE())
-    if msgLen>length-message_head_size{ //说明包不完整
-		return append(make([]byte,0,msgLen),buf.Data[:length]...),nil
+	index:=0
+	for index<length{
+		c.Session.ReadBuf.ResetReadIndex(index)
+		msgLen:=int(c.Session.ReadBuf.ReadUint32BE())
+
+		if msgLen+message_head_size > length-index{
+			//包长度不够，说明包不完整，需要等待下一条消息粘包
+			c.Session.TempBuf=make([]byte,length-index,2048)
+			copy(c.Session.TempBuf,c.Session.ReadBuf.Data[index:length])
+			break
+		}else{
+			index=index+message_head_size
+			c.handleClient.BeforeHandle(c,msgLen,c.Session.ReadBuf.Data[index:index+msgLen])
+			index=index+msgLen
+		}
 	}
-	return nil,nil
+	return nil
 }
 
 func (c *Engine)WriteMessage(){
@@ -155,10 +164,10 @@ func (c *Engine)WriteMessage(){
 			//发送
 			c.Session.Conn.Write(c.Session.OutBuf.Data)
 		case <-c.heartTicker():
-				 _, err := c.Session.Conn.Write(c.Session.HeartBuf)
-				 if err != nil {
-					 log.Errorln("Connector Heart err:", err)
-				 }
+			 _, err := c.Session.Conn.Write(c.Session.HeartBuf)
+			 if err != nil {
+				 log.Errorln("Connector Heart err:", err)
+			 }
 		 //case <-c.Session.closeChan:
 			//	 goto stop
 			 }

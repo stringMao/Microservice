@@ -21,16 +21,6 @@ message Message{
     bytes  body=2;
 }
 
-//message Forward {
-//    //1:id是userid，
-//    //2=id是serverid，
-//    //3：id无意义，表示发送给所有userid，
-//    //4：id是TID，表示发送给所有该TID的服务器。id=0则表示无论什么tid，发送给所有服务器
-//    uint32  kind=1;
-//    uint64  id = 2;
-//    //repeated uint64 ids = 3;
-//    bytes body = 4;
-//}
 
 message Forward {
     uint64  userId=1;

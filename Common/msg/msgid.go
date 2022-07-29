@@ -22,6 +22,7 @@ func ParseMessageID(id uint32)int{
 const(
 	ToUser uint32=iota+1
 	ToUser_Err
+	ToUser_Test
 	ToUser_GateLoginResult
 	ToUser_JoinSvrResult
 	ToUser_QuitSvrResult
@@ -53,7 +54,6 @@ const (
 // 发送给大厅服的消息 [120000,130000)
 const (
 	ToHallSvr  uint32=iota+constant.TID_HallSvr*msgInterval
-	ToHallSvr_UserLoginReq
-	ToHallSvr_GetUserInfo
+	ToHallSvr_Test
 )
 

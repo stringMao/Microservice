@@ -4,6 +4,7 @@ import (
 	"Common/kernel/go-scoket/sockets"
 	"Common/log"
 	"Common/msg"
+	"Common/proto/base"
 	"Common/proto/codes"
 	"Common/proto/gateProto"
 	"github.com/golang/protobuf/proto"
@@ -76,6 +77,17 @@ func UserOffline(engine *sockets.Engine,buf []byte){
 		return
 	}
 	log.Debugf("UserOffline userid[%d]",pData.Userid)
+}
+func TestMessage(engine *sockets.Engine,buf []byte){
+	pData := &base.ReplyResult{}
+	pForward:=msg.ProtoDecode(buf,pData)
+	if pForward==nil{
+		return
+	}
+	log.Debugf("TestMessage；收到[%d]的%s:%d",pForward.UserId,pData.Txt,pData.Code)
+	pData.Code++
+
+	engine.SendData(NewMsgToClient(pForward.UserId,msg.ToUser_Test,pData))
 }
 
 //func DoPlayerTestMsg(srcType uint8,srcId uint64,s *scokets.Connector,buf []byte){

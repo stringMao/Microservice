@@ -18,8 +18,8 @@ func NewLogicAgent(connector *sockets.Connector) *LogicAgent {
 
 func (c *LogicAgent)BeforeHandle(engine *sockets.Engine,len int,buffer []byte){
 	pMessage := &base.Message{}
-	if proto.Unmarshal(buffer, pMessage) != nil {
-		log.Warnln("ServerAgent BeforeHandle is err")
+	if err:=proto.Unmarshal(buffer, pMessage);err != nil {
+		log.Warnln("ServerAgent BeforeHandle is err: ",err)
 		return
 	}
 	fn:=c.Connector.GetHandleFunc(pMessage.MessageId)

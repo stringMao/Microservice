@@ -64,7 +64,7 @@ func (s *ServerAgent)CloseHandle(engine *sockets.Engine){
 	G_ClientManager.RemoveServer(engine)
 }
 
-func (s *ServerAgent)BeforeHandle(client *sockets.Engine,n int,buffer []byte){
+func (s *ServerAgent)BeforeHandle(client *sockets.Engine,len int,buffer []byte){
 	//需要捕获异常
 	defer try.Catch()
 	//log.Debugln("收到一条消息")
@@ -72,7 +72,7 @@ func (s *ServerAgent)BeforeHandle(client *sockets.Engine,n int,buffer []byte){
 	pMessage:=&base.Message{}
 	err := proto.Unmarshal(buffer, pMessage)
 	if err != nil {
-		log.Warnln("ServerAgent BeforeHandle is err:",err)
+		log.Warnf("ServerAgent BeforeHandle len[%d] is err:%s",len,err.Error())
 		return
 	}
 
